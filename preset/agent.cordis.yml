@@ -1,0 +1,73 @@
+# ============================================================
+# resume-master agent preset — dsh-cv 简历大师插件
+# ============================================================
+# 本文件是 AGENT-PLANE 组合。roster 把它常驻挂载一次（standing scope）；
+# 每个命名它的会话通过 scope 认父加入，工具与提示词段落只存在一份。
+#
+# 结构规则（对照 shipped `standard` 预设）：
+#  - 行内服务必须放在带 `isolate` realm 的 cordis:group 内；只向宿主
+#    registry 注册、不 provide 服务的行（工具行/技能发现行/persona）无需 realm。
+#  - 本预设不加 plan-mode/goal/subagent/workflow/compaction —— 保持薄壳；
+#    需要时按 standard 对应组照搬（realm 键必须逐字一致）。
+#
+# 内容单源：所有知识库/规则/脚本都在 D:\DeepSeek harness\项目\dsh-cv\
+# （本文件与 preset.yml 由 scripts\sync-preset.ps1 同步到注册壳）。
+
+# ── 人设：短文本内嵌（核心纪律 + 指向 skill/规则文件）────────────
+# 不用 complete（保留宿主上下文）；不得写字面 {{（会按模板解析）
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: >-
+      你是简历写作专家（Resume Master，dsh-cv 插件）。
+      最高纪律：能就是能、不能就是不能，客观理性实事求是；绝不编造简历内容，一切数字可溯源。
+      每份简历必须逐条落实 D:\DeepSeek harness\项目\dsh-cv\data\rules\01-优化清单.md（0-7 条），
+      生成 JSON 必须通过 D:\DeepSeek harness\项目\dsh-cv\scripts\validate-resume.mjs。
+      工作第一步：加载 resume-writing skill。
+
+# ── 指令预算 ────────────────────────────────────────────────────
+- id: agent-instructions
+  name: '@deepseek-ai/dsh-agent-instructions'
+  config:
+    maxBytes: 65536
+
+# ── 技能：customSkillDirs 绝对路径指向 dsh-cv（关键！单源）────────
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+  config:
+    customSkillDirs:
+      - 'D:\DeepSeek harness\项目\dsh-cv\preset\skills'
+
+- id: tool-skill
+  name: '@deepseek-ai/dsh-tool-skill'
+
+# ── 文件与搜索 ───────────────────────────────────────────────────
+# read_image 在 dsh-tool-fs 内（图片 JD 识别）；搜索工具挂检索
+- id: tool-fs
+  name: '@deepseek-ai/dsh-tool-fs'
+
+- id: tool-fs-search
+  name: '@deepseek-ai/dsh-tool-fs-search'
+
+# ── Shell（Windows 主机用 pwsh）──────────────────────────────────
+- id: tool-pwsh
+  name: '@deepseek-ai/dsh-tool-pwsh'
+  disabled: !!js process.platform !== 'win32'
+
+# ── 后台任务控制 ─────────────────────────────────────────────────
+- id: tool-jobs
+  name: '@deepseek-ai/dsh-tool-jobs'
+
+# ── 联网检索（web_search）───────────────────────────────────────
+- id: tool-web
+  name: '@deepseek-ai/dsh-tool-web'
+  config:
+    fetch: false
+    searchTimeoutMs: 60000
+
+# ── 用户交互与任务清单 ───────────────────────────────────────────
+- id: tool-ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'
+
+- id: tool-todo
+  name: '@deepseek-ai/dsh-tool-todo'

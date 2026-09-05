@@ -1,0 +1,16 @@
+{
+  "id": "resume-master",
+  "name": "简历大师（Resume Master）",
+  "version": "0.2.0",
+  "description": "简历写作专家：建档 → JD 理解 → 写作策略 → magicv JSON 生成 → 诊断（dsh-cv 插件）",
+  "contentRoot": "D:\\DeepSeek harness\\项目\\dsh-cv",
+  "files": [
+    "agent.cordis.yml",
+    "preset.yml",
+    "prompts/01-system.md",
+    "prompts/02-workflow.md",
+    "prompts/03-rules.md",
+    "skills/resume-writing/SKILL.md"
+  ],
+  "notes": "manifest.json 为方案文档约定的元信息清单；DSH roster 实际读取的是 agent.cordis.yml（装配）与 preset.yml（展示文本），本文件不被 roster 读取。"
+}

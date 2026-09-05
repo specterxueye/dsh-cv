@@ -1,0 +1,23 @@
+{
+  "$schema": "dsh-cv-jd-v1",
+  "company": "",
+  "position": "",
+  "jdSource": "",
+  "recognizedFromImage": false,
+  "recognizeUncertainties": [],
+  "hardRequirements": [],
+  "softRequirements": [],
+  "pluses": [],
+  "keywords": [],
+  "gapList": [
+    {
+      "requirement": "",
+      "inProfile": false,
+      "strategy": "挖掘相近|建议补充|明确不写",
+      "note": ""
+    }
+  ],
+  "companyStyle": "央国企|互联网|外企|初创|事业单位",
+  "companyPayOff": "",
+  "notes": ""
+}

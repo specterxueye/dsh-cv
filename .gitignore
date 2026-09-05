@@ -1,0 +1,16 @@
+# ── 真人隐私数据（绝不入库，无论仓库私有与否）──────────────
+users/
+test/
+scripts/.smoke/
+
+# ── 个案一次性工具（仅适用本机某用户数据，无通用价值）────────
+scripts/_apply-review-fixes.mjs
+scripts/_merge-user-edits.mjs
+
+# ── 运行时产物与本地环境 ──────────────────────────────
+output/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+*.bak

@@ -1,0 +1,32 @@
+{
+  "$schema": "dsh-cv-strategy-v1",
+  "versionTitle": "姓名-岗位-学校",
+  "targetCompany": "",
+  "targetPosition": "",
+  "sectionOrder": [],
+  "emphasis": {
+    "experience": [],
+    "projects": []
+  },
+  "keywordPlacement": {
+    "keyword": "basic|education|skills|projects|selfEval"
+  },
+  "skillTiering": {
+    "第一梯队": [],
+    "第二梯队": [],
+    "第三梯队": []
+  },
+  "selfEval": [
+    "结论+论证1",
+    "结论+论证2",
+    "结论+论证3"
+  ],
+  "gapHandling": [],
+  "cut": [],
+  "photo": "",
+  "note": "为什么这样设计（供用户审阅）",
+  "truthCheck": {
+    "每数字可信源": [],
+    "缺口清单": []
+  }
+}

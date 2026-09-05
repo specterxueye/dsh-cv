@@ -1,0 +1,79 @@
+{
+  "$schema": "dsh-cv-profile-v2",
+  "basic": {
+    "name": "",
+    "title": "",
+    "employementStatus": "在校",
+    "email": "",
+    "phone": "",
+    "location": "",
+    "birthDate": "",
+    "nativePlace": "",
+    "politics": "",
+    "layout": "left",
+    "customFields": {},
+    "photo": "",
+    "photoFile": ""
+  },
+  "education": [
+    {
+      "school": "",
+      "major": "",
+      "degree": "",
+      "startDate": "2023/09",
+      "endDate": "2027/06",
+      "gpa": "",
+      "rank": "",
+      "bullets": [
+        "每条为 HTML 前的纯文本要点，可用 **关键词** 显式标记加粗"
+      ]
+    }
+  ],
+  "experience": [
+    {
+      "company": "",
+      "position": "",
+      "date": "2024/04 - 2025/08",
+      "bullets": [
+        "纯文本要点，量化优先：**127 条**开发记录、覆盖 **20+** 页面"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "",
+      "role": "",
+      "level": "",
+      "date": "",
+      "headline": "可选：技术栈导语行（渲染为 <p>）",
+      "bullets": [
+        "**关键词**加粗 + 量化指标"
+      ]
+    }
+  ],
+  "campus": [
+    {
+      "name": "（在校期间）校园媒体宣传与视频制作",
+      "position": "宣传统筹 / 视频制作（宣传委员职责）",
+      "date": "在校期间",
+      "bullets": [
+        "量化要点"
+      ]
+    }
+  ],
+  "awards": [
+    "**蓝桥杯** C++ 组省级二等奖（2025.5）；优秀共青团员（连续三届）"
+  ],
+  "skills": [
+    "**AI 与计算机视觉**：熟练运用 Python、PyTorch、OpenCV、YOLOv5 完成目标检测全流程，验证集 **mAP@0.5 0.9744**",
+    "**前端与数据可视化**：熟练运用 Vue 3、Element Plus、ECharts、高德地图完成图表自适应与 PDF 导出"
+  ],
+  "selfEvaluation": [
+    "结论+论证：具备扎实的计算机专业技术基础：在**真实政务项目**中完成 20+ 页面模块、127 条开发记录"
+  ],
+  "certificates": [],
+  "_rules": {
+    "字段约定": "basic 平铺；education/experience/projects/campus 为数组，每条 bullets 为纯文本要点数组（**xxx** 会被转 <strong>）；skills/awards/selfEvaluation 为字符串数组；每事实必须可溯源（来源在评审数据源清单中）；status:pending 的事实不得写入；数字无据不写",
+    "生成器契约": "build-resume.mjs --profile 此文件 --strategy strategy.json"
+  }
+}
