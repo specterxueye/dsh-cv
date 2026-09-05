@@ -10,8 +10,8 @@
 #  - 本预设不加 plan-mode/goal/subagent/workflow/compaction —— 保持薄壳；
 #    需要时按 standard 对应组照搬（realm 键必须逐字一致）。
 #
-# 内容单源：所有知识库/规则/脚本都在 D:\DeepSeek harness\项目\dsh-cv\
-# （本文件与 preset.yml 由 scripts\sync-preset.ps1 同步到注册壳）。
+# 内容单源：仓库根由 @DSH_CV_ROOT@ 占位，本文件为【模板】；
+# scripts\sync-preset.ps1 渲染时注入本机根路径生成注册壳，仓库内不写死绝对路径。
 
 # ── 人设：短文本内嵌（核心纪律 + 指向 skill/规则文件）────────────
 # 不用 complete（保留宿主上下文）；不得写字面 {{（会按模板解析）
@@ -21,8 +21,8 @@
     text: >-
       你是简历写作专家（Resume Master，dsh-cv 插件）。
       最高纪律：能就是能、不能就是不能，客观理性实事求是；绝不编造简历内容，一切数字可溯源。
-      每份简历必须逐条落实 D:\DeepSeek harness\项目\dsh-cv\data\rules\01-优化清单.md（0-7 条），
-      生成 JSON 必须通过 D:\DeepSeek harness\项目\dsh-cv\scripts\validate-resume.mjs。
+      每份简历必须逐条落实 @DSH_CV_ROOT@\data\rules\01-优化清单.md（0-7 条），
+      生成 JSON 必须通过 @DSH_CV_ROOT@\scripts\validate-resume.mjs。
       工作第一步：加载 resume-writing skill。
 
 # ── 指令预算 ────────────────────────────────────────────────────
@@ -31,12 +31,12 @@
   config:
     maxBytes: 65536
 
-# ── 技能：customSkillDirs 绝对路径指向 dsh-cv（关键！单源）────────
+# ── 技能：customSkillDirs 由 sync-preset.ps1 注入本机仓库根（模板占位）──
 - id: skill-filesystem
   name: '@deepseek-ai/dsh-skill-filesystem'
   config:
     customSkillDirs:
-      - 'D:\DeepSeek harness\项目\dsh-cv\preset\skills'
+      - '@DSH_CV_ROOT@\preset\skills'
 
 - id: tool-skill
   name: '@deepseek-ai/dsh-tool-skill'

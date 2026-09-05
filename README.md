@@ -36,20 +36,21 @@ dsh-cv/
 - **脚本**：Node.js ≥ 16（无第三方依赖，独立于 DSH 亦可运行）
 - **渲染验收（可选）**：Playwright-core + 本机 Chrome
 
-## 安装（Windows · 单机）
+## 安装（Windows）
 
-1. 将仓库内容放入本机目录（示例：`D:\DeepSeek harness\项目\dsh-cv`）。
-2. 替换绝对路径前缀：项目内所有引用均使用该前缀（见 `preset\agent.cordis.yml` 的 `customSkillDirs`、`preset\prompts\*`、`preset\skills\resume-writing\SKILL.md`），换目录部署时全局替换。
-3. 挂载技能：
-   ```powershell
-   New-Item -ItemType Junction -Path "$env:DSH_HOME\skills\resume-writing" -Value "<dsh-cv路径>\preset\skills\resume-writing"
-   ```
-   挂载后所有会话的技能目录立即出现 `resume-writing`；对话中触发"写简历 / 分析 JD / 生成 magicv JSON"即自动加载。
-4. （可选）挂载专属预设，开启"简历专家"会话：
-   ```powershell
-   New-Item -ItemType Junction -Path "$env:DSH_HOME\.agent-presets\resume-master" -Value "<dsh-cv路径>\preset"
-   scripts\sync-preset.ps1
-   ```
+```powershell
+git clone https://github.com/specterxueye/dsh-cv.git
+cd dsh-cv
+pwsh -NoProfile -File scripts\install.ps1
+```
+
+安装脚本自动完成三件事：
+
+1. 设置用户级环境变量 `DSH_CV_ROOT` = 仓库根；
+2. 建立技能联接 `<DSH_HOME>\skills\resume-writing` → 仓库 `preset\skills\resume-writing`；
+3. 渲染预设注册壳（模板注入本机路径）。
+
+**克隆到任意目录均可**。新开会话即可使用（触发词：写简历 / 分析 JD / magicv JSON），或在新建会话时选择「简历大师」预设。升级：`git pull` 后重跑 `install.ps1`（幂等）。
 
 ## 快速开始
 
@@ -90,7 +91,7 @@ node "scripts\render-height.mjs" <resume.json>
 
 ## 已知限制
 
-1. **单机部署**：技能与脚本通过绝对路径引用，跨机器需全局替换前缀并重建 junction。
+1. **安装需运行 `install.ps1`**：预设注册壳依赖本机路径注入（模板 → 渲染），纯手工复制不可用；跨机 clone 后重跑 `install.ps1` 即完成。
 2. `autoOnePage` 是渲染侧的**保险机制**而非充分条件；真一页判据以渲染高度 ≤ 1123px 为准。
 3. 图片 JD 识别依赖视觉桥可用性；识别不确定时会列出待确认项。
 4. magicv 的顶层 `campus` 与 `customData` 存在双写设计，须经校验器守护，防止渲染缺失。

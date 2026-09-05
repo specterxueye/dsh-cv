@@ -1,6 +1,7 @@
 # 工作流（每份简历按此五阶段推进，产物落盘）
 
 > 所有个性数据归 `users\<用户名>\`；通用规则在 `data\rules\`。以下 `<用户名>` 为当前服务对象。
+> **路径约定**：仓库根 = `$env:DSH_CV_ROOT`（安装脚本已设置；`pwsh -NoProfile -Command "echo $env:DSH_CV_ROOT"` 查看）。本文所有相对路径以仓库根为基准；环境变量缺失时先用 glob（`**/*-优化清单*.md`）定位根。命令统一在仓库根执行 `node scripts\xxx.mjs`（路径含空格加引号）。
 
 ## 阶段 1：人物建档（功能 1）
 
@@ -61,7 +62,7 @@
 - 运行（路径含空格，**必须加引号**；`--out` 缺省为 `users\<用户名>\output\<姓名>-<岗位>-<学校>.json`）：
 
 ```powershell
-node "D:\DeepSeek harness\项目\dsh-cv\scripts\build-resume.mjs" --profile "<dsh-cv>\users\<用户名>\<名字>-事实基线.json" --strategy "<dsh-cv>\users\<用户名>\output\strategy-<公司>-<岗位>.json" [--out "<dsh-cv>\users\<用户名>\output\<姓名>-<岗位>-<学校>.json"]
+node "scripts\build-resume.mjs" --profile "users\<用户名>\<名字>-事实基线.json" --strategy "users\<用户名>\output\strategy-<公司>-<岗位>.json" [--out "users\<用户名>\output\<姓名>-<岗位>-<学校>.json"]
 ```
 
 - `strategy.json` 生成器识别字段（其余字段为 LLM 自身分析记录，生成器忽略但不报错）：
@@ -79,9 +80,9 @@ node "D:\DeepSeek harness\项目\dsh-cv\scripts\build-resume.mjs" --profile "<ds
 
 ## 阶段 5b：真实渲染验证（一页装下 · 硬性）
 
-> 光看 autoOnePage 开关不算数，必须**真实渲染**。工具：`scripts\e2e-render.cjs`（playwright-core + 本机 Chrome，导入 magicv.art 渲染；Node 需能解析 playwright-core，示例环境 `D:\desk\_tmp_magicv\`）。
+> 光看 autoOnePage 开关不算数，必须**真实渲染**。工具：`scripts\e2e-render.cjs`（playwright-core + 本机 Chrome，导入 magicv.art 渲染）。Node 需能解析 playwright-core：请设置 `$env:PLAYWRIGHT_DIR` 指向含 node_modules 的目录。
 
-- 运行：`node "D:\DeepSeek harness\项目\dsh-cv\scripts\e2e-render.cjs" <resume.json> <截图前缀>`
+- 运行：`node "scripts\e2e-render.cjs" <resume.json> <截图前缀>`
 - **通过判据（全部满足才算一页）**：
   1. 渲染成功（workbench 加载，无 FAILED）
   2. `scrollers` 为空（预览容器无内容溢出）

@@ -3,7 +3,7 @@
   "name": "简历大师（Resume Master）",
   "version": "0.2.0",
   "description": "简历写作专家：建档 → JD 理解 → 写作策略 → magicv JSON 生成 → 诊断（dsh-cv 插件）",
-  "contentRoot": "D:\\DeepSeek harness\\项目\\dsh-cv",
+  "contentRoot": "@DSH_CV_ROOT@",
   "files": [
     "agent.cordis.yml",
     "preset.yml",

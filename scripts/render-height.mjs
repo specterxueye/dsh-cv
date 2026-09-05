@@ -4,9 +4,10 @@
  * 用法: node scripts/render-height.mjs <resume.json>
  * 原理：按魔法 classic 模板参数在 headless 页里逐段真排版量高，求和 = 画布内容总高。
  * 一页参照：A4 @96dpi = 1123px；与已验证一页的金标准成品同法对比（判定：新稿 ≤ 基准）。
- * 依赖：playwright-core（可传 --engine 或用示例环境 D:\desk\_tmp_magicv\node_modules）。
+ * 依赖：playwright-core（用 $env:PLAYWRIGHT_DIR 指向包含 node_modules 的目录，或 --engine 参数）
+ * Chrome 路径：$env:CHROME_PATH 或默认从常见安装位置探测（可被 --chrome 覆盖）。
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
@@ -26,9 +27,10 @@ const paragraphSpacing = gs.paragraphSpacing ?? 3;
 const sectionSpacing = gs.sectionSpacing ?? 10;
 const pagePadding = gs.pagePadding ?? 34;
 
-// 找一个能解析 playwright-core 的 require —— 先用脚本所在目录，再试 D:\desk\_tmp_magicv
+// 找一个能解析 playwright-core 的 require —— 先 cwd，再看 $env:PLAYWRIGHT_DIR
 const tryRequire = async () => {
-  for (const base of [process.cwd(), 'D:\\desk\\_tmp_magicv']) {
+  const bases = [process.cwd(), process.env.PLAYWRIGHT_DIR].filter(Boolean);
+  for (const base of bases) {
     try { return createRequire(resolve(base, 'package.json'))('playwright-core'); } catch (e) {}
   }
   return null;
@@ -98,10 +100,17 @@ function buildTestHtml() {
 }
 
 const pw = await tryRequire();
-if (!pw) { console.error('playwright-core 不可用（复制到示例环境 D:\\desk\\_tmp_magicv 或 --engine）'); process.exit(2); }
+if (!pw) { console.error('playwright-core 不可用：请设置 $env:PLAYWRIGHT_DIR 到含 node_modules 的目录后重试'); process.exit(2); }
 const { chromium } = pw;
 
-const browser = await chromium.launch({ executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', headless: true });
+const chromeCandidates = [
+  process.env.CHROME_PATH,
+  process.env['ProgramFiles'] ? `${process.env['ProgramFiles']}\\Google\\Chrome\\Application\\chrome.exe` : null,
+  process.env['ProgramFiles(x86)'] ? `${process.env['ProgramFiles(x86)']}\\Google\\Chrome\\Application\\chrome.exe` : null,
+  process.env.LOCALAPPDATA ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe` : null,
+].filter(Boolean).filter(p => existsSync(p));
+
+const browser = await chromium.launch({ executablePath: chromeCandidates[0], headless: true });
 const page = await browser.newPage();
 await page.setContent(buildTestHtml(), { waitUntil: 'networkidle' }).catch(() => {});
 await page.waitForTimeout(400);

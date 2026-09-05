@@ -12,6 +12,6 @@
 | 按岗位取范文规律 | `data\samples\tech\` 或 `data\samples\soe\`（只读相关分桶） |
 | 取句式 | `data\phrases\`（动词库/量化句式/自我评价句式） |
 
-路径基准：`D:\DeepSeek harness\项目\dsh-cv\`
+路径基准：仓库根（`$env:DSH_CV_ROOT`，安装脚本已设置；缺失时用 glob `**/*-优化清单*.md` 或 `pwsh Get-ChildItem -Recurse -Depth 2 -Filter 01-优化清单.md` 定位）。上表路径均为相对仓库根。
 
 > 提示：规则文件是长期积累的资产。若发现新规律/新坑位，**先更新规则库文件再操作**，让下一次写作自动受益。

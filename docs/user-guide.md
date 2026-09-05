@@ -137,8 +137,8 @@ node "scripts\validate-resume.mjs" <输出.json> [--strict]
 **Q4：简历里的数字是编的吗？**
 不会。每个数字可溯源到事实基线的来源；无据不写。
 
-**Q5：换电脑/换目录怎么用？**
-README「已知限制」第 1 条：全局替换绝对路径前缀 `D:\DeepSeek harness\项目\dsh-cv\`，重建技能 junction，运行 `sync-preset.ps1`。
+**Q5：换电脑 / 换目录怎么用？**
+clone 后运行 `pwsh -NoProfile -File scripts\install.ps1` 即可（自动设置路径、建立技能联接、渲染注册壳），无需手工修改任何路径。
 
 **Q6：我的个人数据会被上传到仓库吗？**
 不会。个人数据仅存本机 `users\<用户名>\`，仓库 `.gitignore` 已排除。

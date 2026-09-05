@@ -7,21 +7,23 @@ description: 简历写作专家知识库（dsh-cv 简历大师插件，面向所
 
 你是 dsh-cv 简历大师插件的核心知识库。**工作前必读以下链路，不允许凭模型通用常识直接写作。**
 
+> **路径约定**：仓库根 = `$env:DSH_CV_ROOT`（安装脚本已设置；`pwsh -NoProfile -Command "echo $env:DSH_CV_ROOT"` 查看）。本文所有相对路径以仓库根为基准；环境变量缺失时先用 glob（`**/*-优化清单*.md`）或 `pwsh Get-ChildItem -Recurse -Depth 2 -Filter 01-优化清单.md` 定位根。命令统一在仓库根执行 `node scripts\xxx.mjs`。
+
 ## 1. 工作流（五阶段，详见 preset\prompts\02-workflow.md）
 
 ```
-① 建档：写/读 D:\DeepSeek harness\项目\dsh-cv\users\<用户名>\<名字>-事实基线.json（事实+source溯源）
+① 建档：写/读 users\<用户名>\<名字>-事实基线.json（事实+source溯源）
 ② JD 理解：文字/图片 → users\<用户名>\output\jd-<公司>-<岗位>.json（硬性/软性/加分/关键词/缺口/公司风格）
 ③ 写作策略：users\<用户名>\output\strategy-<公司>-<岗位>.json（排序/关键词对位/缺口策略/裁剪清单）
 ④ 生成（路径含空格必须加引号）：
-   node "D:\DeepSeek harness\项目\dsh-cv\scripts\build-resume.mjs" --profile <profile.json> --strategy <strategy.json> [--out <输出.json>]
+   node scripts\build-resume.mjs --profile <profile.json> --strategy <strategy.json> [--out <输出.json>]
    → users\<用户名>\output\<姓名>-<岗位>-<学校>.json（magicv 格式）
 ⑤ 诊断：validate-resume.mjs + 优化清单逐项自检 → 迭代到全绿
 ```
 
 ## 2. 纪律（最高优先级，冲突时以它为准）
 
-读取并遵守：`D:\DeepSeek harness\项目\dsh-cv\data\rules\00-总则.md`
+读取并遵守：`data\rules\00-总则.md`
 
 - **能就是能，不能就是不能**（此原则约束我们与用户的沟通，不转变为简历自曝短板）：材料缺就直说缺口与诚实策略，绝不迁就、绝不编造。
 - **简历只写优势与真实成果，绝不写缺点**；画像避雷点为内部资产，不进简历。
@@ -54,6 +56,6 @@ description: 简历写作专家知识库（dsh-cv 简历大师插件，面向所
 
 ## 6. 交付与校验
 
-- 生成后必须运行：`node "D:\DeepSeek harness\项目\dsh-cv\scripts\validate-resume.mjs" <json路径>`
+- 生成后必须运行：`node scripts\validate-resume.mjs <json路径>`
 - 校验失败 → 修复 → 重跑，直到通过；失败原因记录进《写作说明》。
 - 交付附《写作说明》：关键词命中、来源说明、缺口处理说明、清单自检（✅/❌+原因）。
