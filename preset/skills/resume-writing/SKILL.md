@@ -9,17 +9,23 @@ description: 简历写作专家知识库（dsh-cv 简历大师插件，面向所
 
 > **路径约定**：仓库根 = `$env:DSH_CV_ROOT`（安装脚本已设置；`pwsh -NoProfile -Command "echo $env:DSH_CV_ROOT"` 查看）。本文所有相对路径以仓库根为基准；环境变量缺失时先用 glob（`**/*-优化清单*.md`）或 `pwsh Get-ChildItem -Recurse -Depth 2 -Filter 01-优化清单.md` 定位根。命令统一在仓库根执行 `node scripts\xxx.mjs`。
 
-## 1. 工作流（五阶段，详见 preset\prompts\02-workflow.md）
+## 1. 工作流（详见 preset\prompts\02-workflow.md）
 
 ```
 ① 建档：写/读 users\<用户名>\<名字>-事实基线.json（事实+source溯源）
 ② JD 理解：文字/图片 → users\<用户名>\output\jd-<公司>-<岗位>.json（硬性/软性/加分/关键词/缺口/公司风格）
-③ 写作策略：users\<用户名>\output\strategy-<公司>-<岗位>.json（排序/关键词对位/缺口策略/裁剪清单）
-④ 生成（路径含空格必须加引号）：
-   node scripts\build-resume.mjs --profile <profile.json> --strategy <strategy.json> [--out <输出.json>]
+③ 方案：strategy-<公司>-<岗位>.json ＋ ★changerequest-<公司>-<岗位>.json（改动申请单：改哪条/现状/拟改/为什么/影响/哪些不动）
+③.5 ★确认门：把申请单摆给用户 → 等**明确批准**（"没回复/你看着办"不算）→ 写回 approved:true + touchedFields
+④ 生成（★未获批准禁止执行；路径含空格必须加引号）：
+   A 微调（默认）：复制蓝本 → 只改被批准的路径 → diff-resume.mjs 核对「实际改动 ⊆ 批准范围」
+   B 重写（仅大改动）：node scripts\build-resume.mjs --profile <profile.json> --strategy <strategy.json> --out <临时.json>
+                      node scripts\merge-blueprint.mjs --blueprint <蓝本.json> --content <临时.json> --out <新稿.json> --title "<姓名>-简历-<岗位>"
    → users\<用户名>\output\<姓名>-<岗位>-<学校>.json（magicv 格式）
-⑤ 诊断：validate-resume.mjs + 优化清单逐项自检 → 迭代到全绿
+⑤ 诊断：validate-resume.mjs（结构）+ audit-facts.mjs（数字溯源）+ 优化清单逐项自检 → 迭代到全绿
 ```
+
+- **蓝本即标准形态**：已验证蓝本的**章节结构 / 章节顺序 / 版式参数 / 已显示内容**默认**零改动**；替换、新增、删除、重排任何项目内容**必须先问后做**。
+- 申请单里没写的改动 = 越权，`diff-resume.mjs` 会点名；**违反确认门生成的产物不得交付**。
 
 ## 2. 纪律（最高优先级，冲突时以它为准）
 
@@ -54,8 +60,20 @@ description: 简历写作专家知识库（dsh-cv 简历大师插件，面向所
 - 动词库/量化句式/自我评价句式：`data\phrases\`
 - 语料来自**网络检索提炼**（规律/句式，非个人简历原文）；读取原则：按岗位类型选分桶，只读相关文件；发现新规律先更新规则库再继续。
 
-## 6. 交付与校验
+## 6. 交付与校验（三个可执行门槛，缺一不可）
 
-- 生成后必须运行：`node scripts\validate-resume.mjs <json路径>`
-- 校验失败 → 修复 → 重跑，直到通过；失败原因记录进《写作说明》。
-- 交付附《写作说明》：关键词命中、来源说明、缺口处理说明、清单自检（✅/❌+原因）。
+| 门槛 | 命令 | 不通过怎么办 |
+|---|---|---|
+| 结构校验 | `node scripts\validate-resume.mjs <json路径>` | 修复 → 重跑，直到通过 |
+| **数字溯源** | `node scripts\audit-facts.mjs "<新稿.json>" --user "users\<用户名>"` | 未命中的数字：补来源（`--corpus <文件>`）或从稿子里删掉，不许静默保留 |
+| **改动合规** | `node scripts\diff-resume.mjs --base "<蓝本.json>" --new "<新稿.json>" --expect "<申请单.json>"` | 越权改动 → 撤销，不许靠"补一句说明"糊过去 |
+
+- 真实渲染验收见 `02-workflow.md` 阶段 5b（模式 B 必须重跑；模式 A 未增删条目可继承蓝本结论 + 抽查）。
+- 交付**四件套**：magicv JSON +《写作说明》+《改动申请单》（含批准记录）+ 差异报告。
+- 校验失败原因记录进《写作说明》；**做不到的项如实写明原因，不假装通过**。
+
+## 7. 交付之后的技能衔接
+
+- `interview-pitch`：按同一份 JD 与事实基线生成**项目讲稿**（中文或中英双语，含 2-3 条可能追问）。
+- `mock-interview`：**模拟面试**（友好复盘 / 高压追问 × BQ / JD 面 / 混合），复盘含"最弱回答的改善版"。
+- 两者都只吃事实源；讲稿与答案里的数字同样要过 `audit-facts.mjs`。

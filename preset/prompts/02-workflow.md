@@ -1,5 +1,7 @@
-# 工作流（每份简历按此五阶段推进，产物落盘）
+# 工作流（每份简历按此推进，产物落盘）
 
+> 全流程：**① 建档 → ② JD 理解 → ③ 方案（改动申请单）→ ③.5 ★确认门 → ④ 生成 → ⑤ 诊断 → 5b 真实渲染 → 5c HR 终审 → 交付**。
+> **本流程最重要的一条**：③.5 确认门不可跳过——**用户没批准方案，就不许生成**。
 > 所有个性数据归 `users\<用户名>\`；通用规则在 `data\rules\`。以下 `<用户名>` 为当前服务对象。
 > **路径约定**：仓库根 = `$env:DSH_CV_ROOT`（安装脚本已设置；`pwsh -NoProfile -Command "echo $env:DSH_CV_ROOT"` 查看）。本文所有相对路径以仓库根为基准；环境变量缺失时先用 glob（`**/*-优化清单*.md`）定位根。命令统一在仓库根执行 `node scripts\xxx.mjs`（路径含空格加引号）。
 
@@ -22,7 +24,7 @@
 
 ## 阶段 2：JD 理解（功能 2 输入侧）
 
-**输入**：JD 文字（粘贴）或图片（`modlens_read_image`/`read_image`）。图片识别后**必须**列不确定项让用户确认。
+**输入**：JD 文字（粘贴）或图片（`read_image`）。图片识别后**必须**列不确定项让用户确认。
 
 **产出**：`users\<用户名>\output\jd-<公司>-<岗位>.json`
 ```
@@ -39,13 +41,16 @@
 }
 ```
 
-## 阶段 3：写作策略（人 × 岗）
+## 阶段 3：方案（写作策略 + **改动申请单**）
 
-**产出**：`users\<用户名>\output\strategy-<公司>-<岗位>.json`
+**核心原则：蓝本即标准形态。** 已验证蓝本（`users\<用户名>\output\蓝本-*.json`，在 magicv.art 真实渲染过、一页验收通过）的**章节结构、章节顺序、版式参数、已显示内容**一律视为标准 → **默认零改动**。本阶段**只产出"要改什么"的方案，不产出简历**。
+
+**产出 A（机读策略，供生成器消费）**：`users\<用户名>\output\strategy-<公司>-<岗位>.json`
 ```
 {
   "versionTitle": "姓名-岗位-学校",
-  "sectionOrder": [...],       // 经历排序（岗位相关性）
+  "approved": false,           // ★ 阶段 3.5 用户批准后由 false 改 true
+  "sectionOrder": [...],       // 默认 = 蓝本顺序；改动需在申请单里获批
   "emphasis": {"projects": ["...优先展开"], "experience": ["...放前面"]},
   "keywordPlacement": { "kw": "basic|education|skills|projects|selfEval" },
   "skillTiering": [...],       // 技能分层（对齐范本五规律）
@@ -56,31 +61,83 @@
 }
 ```
 
-## 阶段 4：生成（magicv JSON）
-
-- 按 `data\rules\04-magicv-schema.md` 金标准组装；输入契约以 `profile\profile-template.json`（人物画像 v2，通用模板）与生成器 README「T3」节为准。
-- 运行（路径含空格，**必须加引号**；`--out` 缺省为 `users\<用户名>\output\<姓名>-<岗位>-<学校>.json`）：
-
-```powershell
-node "scripts\build-resume.mjs" --profile "users\<用户名>\<名字>-事实基线.json" --strategy "users\<用户名>\output\strategy-<公司>-<岗位>.json" [--out "users\<用户名>\output\<姓名>-<岗位>-<学校>.json"]
+**产出 B（★ 用户真正要看、要点头的那一份）**：`users\<用户名>\output\changerequest-<公司>-<岗位>.json`
+```
+{
+  "approved": false,                 // ★ 只有用户明确批准后才置 true
+  "approvedAt": "",                  // 批准时间（本机时间）
+  "approvedBy": "",                  // 批准人（用户）
+  "target": {"company": "", "position": "", "jdSource": ""},
+  "mode": "A-微调",                   // A-微调（默认）| B-重写
+  "unchanged": ["教育经历", "实习经历", "技能优势", "自我评价"],   // ★ 本次**不动**的部分（必须写）
+  "changes": [                       // ★ 每一条都要用户点头；未列出的改动禁止实施
+    { "id": 1, "op": "replace-project|add-project|delete-project|reorder-projects|edit-field|layout-param",
+      "path": "projects[1]", "now": "<蓝本现状摘要>", "proposed": "<拟改为>",
+      "why": "<JD 依据：哪条要求/关键词>", "impact": "<页数/风险/需补材料>" }
+  ],
+  "touchedFields": ["projects[1]", "basic.title"]   // 实施后填实际改动路径，供 diff-resume.mjs 核对
+}
 ```
 
-- `strategy.json` 生成器识别字段（其余字段为 LLM 自身分析记录，生成器忽略但不报错）：
-  `jobTitle`（或 v1 的 `targetPosition`）、`title`/`versionTitle`、`fileName`、`keywords[]`（自动 `<strong>`，源文本 `**显式**` 优先）、`menuSections[]`、`customBlocks[]`（自定义区块→custom-N 并双写）、`sectionOverrides`（改稿覆盖，优先级最高）、`settings`（autoOnePage 恒 true）、`selfEval`（v1）/`photo`（v1）。
-- 生成后立刻跑 `validate-resume.mjs`；失败则修复重跑，直到通过。
+**申请单纪律（硬性）**：
+- **替换 / 新增 / 删除 / 重排任何项目内容，必须先问后做**；蓝本已显示的教育、实习、校园、技能、自评默认原样保留（只允许措辞与关键词适配，**不改事实与数字**）。
+- 申请单必须包含「不动清单」（`unchanged`）——只说改什么、不说留什么 = 不合格申请单。
+- JD 关键词若命中不了任何现有素材 → 写进 `changes` 作为「建议补充素材」，**不要**为了让关键词命中而硬写。
+- 未列入 `touchedFields` 的任何改动，实施后一律视为越权（`diff-resume.mjs` 会点名）。
+
+## 阶段 3.5：★ 确认门（不可跳过）
+
+1. 把《改动申请单》以**表格**形式呈现给用户（改了哪条 / 从什么改成什么 / 为什么 / 有什么影响 / 哪些不动），并明确问："**批准这份方案吗？**"
+2. **等待明确答复**：用户说"没回复""你看着办""继续"**都不算批准**；必须是对申请单的明确同意，或对某几条的具体修改意见。
+3. 批准后：把 `approved: true`、`approvedAt`（本机时间）、`approvedBy`、`touchedFields`（实际要动的路径）**写回申请单文件**，再进入阶段 4。
+4. 否决 / 要求修改：只更新申请单，**不生成**，重新走 3.5。
+5. **未经批准就生成 = 违规，产物不得交付**（不管写得多好）。
+
+> 若用户开口就说"直接生成，不用问我"：这属于**对本次的显式授权**，可在申请单里记 `approvedBy: "用户（会话内一次性授权）"` + `touchedFields` 全覆盖，但**仍要先把申请单摆出来**（用户有权改口）。
+
+## 阶段 4：生成（magicv JSON · 两种模式）
+
+**前置条件（缺一不可）**：① 蓝本存在；② 申请单 `approved: true` 且 `touchedFields` 已填。
+
+**模式 A — 微调（默认，最稳）**：以**蓝本为内容与壳的基线**，只做被批准的定点修改。
+```powershell
+# 1) 复制蓝本为新稿
+Copy-Item "<蓝本路径>" "<users\<用户名>\output\<姓名>-<岗位>-<学校>.json>"
+# 2) 在新稿上用 edit 工具做定点修改（★ 只动 touchedFields 里的路径）
+# 3) 核实「实际改动 ⊆ 批准范围」
+node "scripts\diff-resume.mjs" --base "<蓝本路径>" --new "<新稿路径>" --expect "<changerequest 路径>"
+```
+适用：结构顺序照蓝本、只需贴 JD 关键词/调措辞/换个别条目。**未增删条目时，蓝本的一页验收结论可直接继承**（仍建议抽查渲染一次）。
+
+**模式 B — 重写**：内容层由生成器重新生成，再套蓝本壳。**仅在用户批准了较大改动**（多项替换/重排/整体按岗改写）时使用。
+```powershell
+node "scripts\build-resume.mjs" --profile "users\<用户名>\<名字>-事实基线.json" --strategy "users\<用户名>\output\strategy-<公司>-<岗位>.json" --out "<临时生成品.json>"
+node "scripts\merge-blueprint.mjs" --blueprint "<蓝本路径>" --content "<临时生成品.json>" --out "<users\<用户名>\output\<姓名>-<岗位>-<学校>.json>" --title "<姓名>-简历-<岗位>"
+node "scripts\diff-resume.mjs" --base "<蓝本路径>" --new "<新稿路径>" --expect "<changerequest 路径>"
+```
+- 理由：蓝本版式参数经过真实渲染验证，内容层由生成器保证结构/加粗/双写——避免从零调参试错。
+- 模式 B 会整体重写内容层 → **必须重跑阶段 5b 一页渲染验收**。
+- 没有蓝本时才退化为纯生成（并按 5b 全量验收）。
+
+组装规则仍以 `data\rules\04-magicv-schema.md` 金标准为准；生成器识别的 strategy 字段：
+`jobTitle`（或 v1 的 `targetPosition`）、`title`/`versionTitle`、`fileName`、`keywords[]`（自动 `<strong>`，源文本 `**显式**` 优先）、`menuSections[]`、`customBlocks[]`（自定义区块→custom-N 并双写）、`sectionOverrides`（改稿覆盖，优先级最高）、`settings`（autoOnePage 恒 true）、`selfEval`（v1）/`photo`（v1）。
 
 ## 阶段 5：诊断（功能 3）
 
-1. `validate-resume.mjs` 结构校验。
+1. `node "scripts\validate-resume.mjs" "<新稿.json>"` 结构校验。
 2. 对照 `data\rules\01-优化清单.md` 逐条自检（通用规则）与该用户 `优化清单-个案.md`（个性化要求），输出诊断表：
    - ✅ 已落实 / ⚠️ 部分（说明缺什么）/ ❌ 未落实（说明为什么、能否补）
-3. 无编造核查：每个数字回到事实基线对应 source。
+3. **★ 数字溯源审计（可执行门槛）**：`node "scripts\audit-facts.mjs" "<新稿.json>" --user "users\<用户名>"`
+   - 未命中的数字**必须逐条处理**：① 补来源（`--corpus` 加入该来源文件，如个人项目仓库 README、课程报告、单位材料）或 ② 从稿子里删掉。**不许静默保留**。
+   - 附加语料典型来源：**个人项目仓库的 README/实测说明**、课程设计报告、实习单位材料、获奖证书原件——凡"简历里写了但这个数字不在事实基线里"的，都该补成语料而不是删掉了事。
 4. 一页检查：autoOnePage=true + 内容量估算；超载按策略裁剪。
 5. 迭代：诊断 → 修改 → 再诊断，直到全绿；**做不到的项如实说明"这条目前做不到，原因……"，不假装通过**（此诚实针对过程说明，不转为简历上的自我批评）。
+6. **★ 改动合规核对**：`node "scripts\diff-resume.mjs" --base "<蓝本>" --new "<新稿>" --expect "<申请单>"` 必须通过（无越权改动）。**不通过 → 撤销越权改动**，不得靠"补一句说明"糊过去。
 
 ## 阶段 5b：真实渲染验证（一页装下 · 硬性）
 
 > 光看 autoOnePage 开关不算数，必须**真实渲染**。工具：`scripts\e2e-render.cjs`（playwright-core + 本机 Chrome，导入 magicv.art 渲染）。Node 需能解析 playwright-core：请设置 `$env:PLAYWRIGHT_DIR` 指向含 node_modules 的目录。
+> 模式 A（未增删条目）可复用蓝本的验收结论 + 抽查一次；模式 B **必须**重跑完整判据。
 
 - 运行：`node "scripts\e2e-render.cjs" <resume.json> <截图前缀>`
 - **通过判据（全部满足才算一页）**：
@@ -90,21 +147,27 @@ node "scripts\build-resume.mjs" --profile "users\<用户名>\<名字>-事实基�
   4. 页面无"内容较多/无法完美一页"警告
   5. 截图目检：全部内容位于"第 1 页结束"线之上
 - **不通过 → 迭代精炼**（原则：**按真实数据量撰写**，有数据写足写实，超页只精炼措辞、不整块阉割；不为对齐模板条数砍真数据）；每次改后重新渲染，直到判据全过。
-- 权威警告：magicv 自带"内容较多，已尽量压缩但无法完美一页"提示出现在页面上即不通过。
 
 ### 阶段 5c：HR 眼光终审（出品后、交付前必做）
 
 以专业 HR 视角对成稿**客观自评**，逐项过：
 1. **时间线自洽**：教育/实习/项目日期无矛盾、与学制吻合（发现矛盾如实标注，不掩盖）
-2. **信息单点出现**：每个数据/证书/经历只出现一次；重复处按"位置最优"归位（技术栈留技能区、证书留荣誉/教育、细节留经历）
+2. **信息单点出现**：每个数据/证书/经历只出现一次；重复处按"位置最优"归位（技术栈留技能区、证书留荣誉/教育、细节留经历）；**自我评价不与正文重复数字**（见 `01-优化清单 §7` 判例）
 3. **分类正确**：实验室/科研隶属实习或项目，不混入校园；不写"社会实践"类用户明确排除的区块
 4. **无未经确认的表述**：不写用户未确认的承诺（如"可接受基层/异地"）、无来源细节（如未证实的制度/人数）——宁可删不编
 5. **强点最大化**：真实权威的经历写足写实（3 条量化），不为对齐模板条数删真数据；弱相关内容按"想不想埋此点"取舍
 6. **文字密度**：按真实数据量撰写（0.9-1.0 页为佳），超页只精炼措辞
 7. **加粗克制**（≤16 处，仅岗位词/证书/关键量化）
-8. 评审表输出（✅/⚠️+说明），⚠️ 必须修完才交付；**交付前过一遍"无编造"核查**（每个数字回到事实基线 source）
+8. 评审表输出（✅/⚠️+说明），⚠️ 必须修完才交付；**交付前过一遍阶段 5 第 3 步的数字审计**（每个数字回到事实基线 source）
 
 ## 交付约定
 
 - 文件名：`users\<用户名>\output\<姓名>-简历-<方向>.json`（示例：张三-简历-AI应用开发.json）。
-- 每份交付附《写作说明》Markdown，随 JSON 一起给用户（打开 magicv.art 导入即可）。
+- **交付四件套**：① magicv JSON ②《写作说明》Markdown ③《改动申请单》（含批准记录，`changerequest-*.json`）④ 差异报告（`diff-resume.mjs` 输出，附在写作说明里）。
+- 打开 magicv.art 导入 JSON 即可查看/导出。
+
+## 交付之后（可选衔接）
+
+- **项目讲稿**：`interview-pitch` 技能 —— 按 JD 生成双语口述讲稿（含 2-3 条可能追问）。
+- **模拟面试**：`mock-interview` 技能 —— 双模式（友好复盘 / 高压追问）× 三类型（BQ / JD 面 / 混合）。
+- 两个技能都**只吃同一份事实基线**：讲稿与答案里的每个数字同样要过 `audit-facts.mjs`。
