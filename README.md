@@ -1,10 +1,15 @@
 # dsh-cv · 简历大师（Resume Master）
 
+[![ci](https://github.com/specterxueye/dsh-cv/actions/workflows/ci.yml/badge.svg)](https://github.com/specterxueye/dsh-cv/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-%E2%89%A516-brightgreen.svg)](package.json)
+[![version](https://img.shields.io/badge/version-0.5.0-informational.svg)](CHANGELOG.md)
+
 面向中文求职场景的简历写作工具集：基于**人物事实画像**与目标岗位**招聘要求（JD，文字或图片）**，生成可直接导入 [magicv.art](https://magicv.art) 的标准简历 JSON。
 
 核心设计原则：**事实可溯源 · 针对岗位定制 · 一页装下 · 零编造**。
 
-> 📖 第一次安装与上手：[安装与使用](docs/安装与使用.md)（装什么、怎么装、装完怎么确认、怎么用）｜完整流程见 [用户手册](docs/user-guide.md)
+> 📖 第一次安装与上手：[安装与使用](docs/安装与使用.md)（装什么、怎么装、装完怎么确认、怎么用）｜完整流程见 [用户手册](docs/user-guide.md)｜版本变更见 [CHANGELOG](CHANGELOG.md)
 
 ## 特性
 
@@ -39,20 +44,28 @@ dsh-cv/
 │                    #   resume-writing（简历写作）/ interview-pitch（项目讲稿）/ mock-interview（模拟面试）
 ├── data/            # 通用写作资产（rules 规则库 / samples 范文规律 / phrases 句式库）
 ├── scripts/         # 生成器 build-resume / 蓝本合并 merge-blueprint / 结构校验 validate-resume
-│                    #   数字溯源审计 audit-facts / 改动合规核对 diff-resume
-│                    #   冒烟测试 / 渲染量高 / 预设同步
+│   ├── lib/         #   数字溯源审计 audit-facts / 改动合规核对 diff-resume
+│   │                #   browser.cjs（浏览器与依赖解析，零硬编码路径）
+│   └── check.mjs    #   仓库自检（CI 与本地同一入口）
 ├── profile/         # profile / jd / strategy 输入模板（JSON schema）
-├── docs/            # 安装与使用 · 用户手册 · 面试辅导方法
+├── docs/            # 安装与使用 · 用户手册 · 面试辅导方法 · 架构评估
 ├── users/           # 个人数据层（每用户独立目录，仅存本机，不入库）
 │   └── <用户名>/    #   事实基线 / 画像 / output 成品与申请单 / review 档案
+├── .github/         # CI（跨三平台 × Node 16/20 跑自检 + Windows 跑安装预演）
+├── LICENSE / CHANGELOG.md / THIRD-PARTY-NOTICES.md
+├── package.json / .gitattributes / .editorconfig
 └── README.md
 ```
 
 ## 环境要求
 
 - **运行环境**：DeepSeek Harness（DSH）环境（技能挂载 + junction；见下）
-- **脚本**：Node.js ≥ 16（无第三方依赖，独立于 DSH 亦可运行）
-- **渲染验收（可选）**：Playwright-core + 本机 Chrome
+- **脚本**：Node.js ≥ 16（生成/校验/审计脚本**零第三方依赖**，独立于 DSH 亦可运行）
+- **渲染验收（可选）**：本机已装 Chrome/Edge/Chromium ＋ `playwright-core`
+  ```powershell
+  npm i -D playwright-core        # 或在别处装好后设 $env:PLAYWRIGHT_DIR 指向那个目录
+  ```
+  > 浏览器路径无需配置：脚本用 `--chrome <路径>` / `$DSH_CV_CHROME` / `$CHROME_PATH` / 平台默认安装位置依次探测，都没有时回退 playwright 的 `channel:"chrome"`。
 
 ## 安装（Windows）
 
@@ -123,6 +136,9 @@ pwsh -NoProfile -File scripts\install.ps1
 ## 测试与验证
 
 ```powershell
+# 仓库自检（CI 与本地同一入口：脚本语法 / JSON / 技能完整性 / 零硬编码路径 / 文档链接 / manifest 一致）
+node scripts\check.mjs          # 或 npm run check
+
 # 端到端冒烟（任意 magicv 成品 → 反推输入 → 生成 → 校验）
 node "scripts\_smoke-test.mjs" <金标准简历.json>
 
@@ -130,10 +146,10 @@ node "scripts\_smoke-test.mjs" <金标准简历.json>
 node "scripts\render-height.mjs" <resume.json>
 
 # ★ 分页判据（推荐）：定位 magicv 自己画的「第N页结束」标记，判定页数与溢出量
-node "scripts\render-measure3.cjs" <resume.json> [截图前缀]
+node "scripts\render-measure3.cjs" <resume.json> [截图前缀] [--chrome <浏览器路径>]
 
 # 版面逐块称重：量出每个区块占多少高度，用于定位"版面被谁吃掉"
-node "scripts\render-blocks.cjs" <resume.json> [截图前缀]
+node "scripts\render-blocks.cjs" <resume.json> [截图前缀] [--chrome <浏览器路径>]
 
 # 数字溯源审计：稿子里每个数字回到事实语料核对（未命中退出码 1）
 node "scripts\audit-facts.mjs" <resume.json> --user "users\<用户名>" [--profile <基线.json>] [--corpus <补充语料>]
@@ -142,7 +158,7 @@ node "scripts\audit-facts.mjs" <resume.json> --user "users\<用户名>" [--profi
 node "scripts\diff-resume.mjs" --base <蓝本.json> --new <新稿.json> [--expect <changerequest.json>]
 ```
 
-> 三个脚本都设计成**可做门槛**：审计与核对失败时退出码为 1，可直接串进流水线。
+> 三道业务门槛（`audit-facts` / `diff-resume` / `validate-resume`）与自检脚本都设计成**可做门槛**：失败时退出码为 1，可直接串进流水线。CI 会跨 Ubuntu/Windows/macOS × Node 16/20 跑 `check.mjs`，并在 Windows 上跑 `install.ps1 -DryRun`。
 
 ## 数据与隐私
 
@@ -157,6 +173,7 @@ node "scripts\diff-resume.mjs" --base <蓝本.json> --new <新稿.json> [--expec
 4. 图片 JD 识别依赖视觉桥可用性；识别不确定时会列出待确认项。
 5. magicv 的顶层 `campus` 与 `customData` 存在双写设计，须经校验器守护，防止渲染缺失。
 6. **magicv 记录会与仓库 JSON 分叉**：每次「导入简历」新建一条**同名**记录，反复试验后工作台会堆满同名稿；用户若在 UI 里手改过某条，那条就与 JSON 不再一致（本次即发现一条手改记录含 JSON 中不存在的表述）。**以 JSON 为准、只做导入导出**，手改须回流到 JSON（见路线图）。
+7. **安装脚本只有 Windows 版**（`install.ps1`，用目录联接）：脚本本体（生成/校验/审计/渲染）已是跨平台 Node，但 macOS/Linux 的安装与技能联接需手工完成（见路线图）。
 
 ## 路线图
 
@@ -167,6 +184,9 @@ node "scripts\diff-resume.mjs" --base <蓝本.json> --new <新稿.json> [--expec
 - `campus` 双写一致性由 WARN 升级为强制校验（本次已按 schema 第五节对齐，尚未纳入校验器）
 - 权威副本机制：`current.json` 权威副本 + 桌面导入导出，避免多版本漂移
 - 模块化项目库的**可见性清单**：已进申请单模板（`projectVisibility` + `changes(op:visibility)`）与 `cv-intake` 场景 B 的六维打分流程；**待做**：`diff-resume.mjs` 对"实际 `visible` 改动 ⊆ 批准范围"做强制核对（当前仍只核对 `touchedFields` 路径）
+- **跨平台安装**：补 `install.sh`（macOS/Linux：设 `DSH_CV_ROOT` + 为每个 `preset/skills/*` 建符号链接 + 渲染注册壳），与 `install.ps1` 行为对齐
+- **发布流程**：自 0.5.0 起按语义化版本推进（tag + Release 说明取本 CHANGELOG 对应小节）；旧标签 `v1.0.0`（2026-09-05）为历史快照
+- **CI 扩展**：目前 CI 只跑"零依赖自检 + 安装预演"；待做：在 CI 里对 `profile/*-template.json` 跑一次 `build-resume → validate-resume` 的合成用例（不涉个人数据）
 
 ## 致谢
 
@@ -176,4 +196,8 @@ node "scripts\diff-resume.mjs" --base <蓝本.json> --new <新稿.json> [--expec
 
 ## 许可
 
-本仓库当前未附带 LICENSE 文件，版权归作者所有；如需使用或分发请与作者联系。
+本仓库以 **MIT License** 发布（见 [LICENSE](LICENSE)）。第三方内容与各自许可见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)：
+
+- `cv-intake` 的 frontier 机制改造自 `mattpocock/skills` 的 `grilling`（MIT，已保留其版权声明）；
+- magicv.art 的简历 JSON 格式参照 `JOYCEQL/magic-resume`（Apache-2.0，**仅参照数据结构，未复制代码**）；
+- 写作规律语料提炼自公开网络资料，不复制任何真实个人简历原文。

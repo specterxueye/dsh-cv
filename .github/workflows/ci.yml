@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: 仓库自检（${{ matrix.os }} / node ${{ matrix.node }}）
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['16', '20']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: node scripts/check.mjs
+        run: node scripts/check.mjs
+
+  install-dryrun:
+    name: install.ps1 -DryRun（Windows）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 预演安装（不写入任何东西）
+        shell: pwsh
+        run: ./scripts/install.ps1 -DryRun

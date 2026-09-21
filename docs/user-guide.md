@@ -1,6 +1,6 @@
 # 简历大师 · 用户手册
 
-> 对应版本：dsh-cv 0.4.0 · **第一次安装/上手看 [安装与使用](安装与使用.md)** · 配套文档：[README](../README.md)
+> 对应版本：dsh-cv 0.5.0 · **第一次安装/上手看 [安装与使用](安装与使用.md)** · 配套文档：[README](../README.md) · [CHANGELOG](../CHANGELOG.md)
 
 本手册面向最终用户（求职者），按完整使用流程说明操作步骤。插件适用于中文求职场景，支持技术开发岗、央国企等方向的定制简历。
 
@@ -11,8 +11,9 @@
 | 项目 | 说明 |
 |------|------|
 | 运行环境 | DeepSeek Harness（DSH），已挂载 4 个技能：`cv-intake` / `resume-writing` / `interview-pitch` / `mock-interview`（安装与自检见 [安装与使用](安装与使用.md)） |
-| Node.js | ≥ 16（用于生成器/校验器脚本） |
+| Node.js | ≥ 16（用于生成器/校验器脚本；零第三方依赖） |
 | magicv.art 账号 | 用于简历渲染与导出（https://magicv.art） |
+| playwright-core（可选） | 只做真实渲染验收时需要：`npm i -D playwright-core`（浏览器路径自动探测，无需配置） |
 
 聊天方式触发：说出「帮我写简历」「分析这个 JD」「帮我建档」「按这个 JD 选项目」「生成 magicv JSON」等即可自动加载技能。
 

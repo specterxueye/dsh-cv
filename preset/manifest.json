@@ -1,7 +1,7 @@
 {
   "id": "resume-master",
   "name": "简历大师（Resume Master）",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "求职全链路助手：拷问式建档（cv-intake）→ JD 理解 → 项目取舍（按 JD 六维打分 + 用户裁决）→ 改动申请单（蓝本零改动）→ ★用户批准 → 生成 → 三重校验（结构/数字溯源/改动合规）→ 真实渲染；附项目讲稿与模拟面试两个技能",
   "contentRoot": "@DSH_CV_ROOT@",
   "files": [

@@ -1,0 +1,50 @@
+{
+  "name": "dsh-cv",
+  "version": "0.5.0",
+  "private": true,
+  "description": "简历大师（Resume Master）：面向中文求职场景的简历工具集 —— 拷问式建档、按 JD 取舍项目、magicv.art JSON 生成与三重校验（数字溯源 / 改动合规 / 结构）",
+  "keywords": [
+    "resume",
+    "cv",
+    "magicv",
+    "dsh",
+    "agent-skill",
+    "job-hunting",
+    "chinese"
+  ],
+  "license": "MIT",
+  "author": "specterxueye",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/specterxueye/dsh-cv.git"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "type": "commonjs",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "validate": "node scripts/validate-resume.mjs",
+    "audit": "node scripts/audit-facts.mjs",
+    "diff": "node scripts/diff-resume.mjs",
+    "build": "node scripts/build-resume.mjs",
+    "merge-blueprint": "node scripts/merge-blueprint.mjs",
+    "smoke": "node scripts/_smoke-test.mjs",
+    "measure": "node scripts/render-measure3.cjs",
+    "blocks": "node scripts/render-blocks.cjs",
+    "render-height": "node scripts/render-height.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": ">=1.40"
+  },
+  "dsh": {
+    "preset": "preset/agent.cordis.yml",
+    "skills": [
+      "preset/skills/cv-intake",
+      "preset/skills/resume-writing",
+      "preset/skills/interview-pitch",
+      "preset/skills/mock-interview"
+    ],
+    "install": "scripts/install.ps1"
+  }
+}

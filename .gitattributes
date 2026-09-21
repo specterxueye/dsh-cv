@@ -1,0 +1,29 @@
+# 统一换行与文本判定：仓库内一律以 LF 存储，避免 Windows/macOS 协作出 CRLF 抖动
+* text=auto eol=lf
+
+# 明确文本类型的扩展名（防止二进制误判）
+*.md   text
+*.json text
+*.yml  text
+*.yaml text
+*.mjs  text
+*.cjs  text
+*.js   text
+*.ps1  text
+*.sh   text
+*.txt  text
+
+# 记住本项目以中文文档为主，GitHub 语言统计按代码走
+*.md   linguist-documentation
+data/** linguist-documentation
+docs/** linguist-documentation
+preset/**/SKILL.md linguist-documentation
+
+# 二进制
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.pdf  binary
+
+# 发布产物不参与 diff 统计
+package-lock.json -diff linguist-generated
