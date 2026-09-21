@@ -12,9 +12,11 @@ description: 简历写作专家知识库（dsh-cv 简历大师插件，面向所
 ## 1. 工作流（详见 preset\prompts\02-workflow.md）
 
 ```
-① 建档：写/读 users\<用户名>\<名字>-事实基线.json（事实+source溯源）
+① 建档：**加载 cv-intake 技能**（拷问式建档：frontier 轮次 + 每题带推荐答案 + 可自查项派 subagent）
+        → 写/读 users\<用户名>\<名字>-事实基线.json（事实+source溯源）与 项目素材库.md
 ② JD 理解：文字/图片 → users\<用户名>\output\jd-<公司>-<岗位>.json（硬性/软性/加分/关键词/缺口/公司风格）
-③ 方案：strategy-<公司>-<岗位>.json ＋ ★changerequest-<公司>-<岗位>.json（改动申请单：改哪条/现状/拟改/为什么/影响/哪些不动）
+③ 方案：**先走 cv-intake 场景 B 项目取舍**（按 JD 六维打分给"点亮/收起"建议 → 用户逐项裁决 → projectVisibility）
+        ＋ strategy-<公司>-<岗位>.json ＋ ★changerequest-<公司>-<岗位>.json（改动申请单：改哪条/现状/拟改/为什么/影响/哪些不动）
 ③.5 ★确认门：把申请单摆给用户 → 等**明确批准**（"没回复/你看着办"不算）→ 写回 approved:true + touchedFields
 ④ 生成（★未获批准禁止执行；路径含空格必须加引号）：
    A 微调（默认）：复制蓝本 → 只改被批准的路径 → diff-resume.mjs 核对「实际改动 ⊆ 批准范围」
@@ -24,7 +26,9 @@ description: 简历写作专家知识库（dsh-cv 简历大师插件，面向所
 ⑤ 诊断：validate-resume.mjs（结构）+ audit-facts.mjs（数字溯源）+ 优化清单逐项自检 → 迭代到全绿
 ```
 
-- **蓝本即标准形态**：已验证蓝本的**章节结构 / 章节顺序 / 版式参数 / 已显示内容**默认**零改动**；替换、新增、删除、重排任何项目内容**必须先问后做**。
+- **`cv-intake` 是采集/裁决引擎，不写简历**：建档（温和档）与项目取舍（尖锐档）都归它；提问机制见 `preset\skills\cv-intake\SKILL.md`，题库与评分表见 `preset\skills\cv-intake\references\frontier-建档问题树.md`、`preset\skills\cv-intake\references\jd-project-fit.md`。
+- **项目取舍 ≠ 批准**：取舍轮的裁决只是申请单输入，**仍要过 ③.5 确认门**才能生成。
+- **蓝本即标准形态**：已验证蓝本的**章节结构 / 章节顺序 / 版式参数 / 已显示内容**默认**零改动**；替换、新增、删除、重排、**切换项目可见性**都必须先问后做。
 - 申请单里没写的改动 = 越权，`diff-resume.mjs` 会点名；**违反确认门生成的产物不得交付**。
 
 ## 2. 纪律（最高优先级，冲突时以它为准）
@@ -77,3 +81,9 @@ description: 简历写作专家知识库（dsh-cv 简历大师插件，面向所
 - `interview-pitch`：按同一份 JD 与事实基线生成**项目讲稿**（中文或中英双语，含 2-3 条可能追问）。
 - `mock-interview`：**模拟面试**（友好复盘 / 高压追问 × BQ / JD 面 / 混合），复盘含"最弱回答的改善版"。
 - 两者都只吃事实源；讲稿与答案里的数字同样要过 `audit-facts.mjs`。
+
+## 8. 用户问「怎么装 / 怎么用 / 装好了吗」时
+
+1. **先读** `docs\安装与使用.md` 再回答（安装三步、自检命令、触发词表、升级/卸载、常见问题表），**不要凭记忆描述安装步骤**。
+2. 自检一句话版：跑 `pwsh -NoProfile -File scripts\install.ps1`，末尾看到**技能联接 4/4 就位、自检 3/3 通过**即装好；缺技能 → 重跑脚本并**新开一个会话**。
+3. 技能清单与触发词：`cv-intake`（建档 / 按 JD 选项目）、`resume-writing`（写简历 / 分析 JD / 生成 JSON）、`interview-pitch`（项目讲稿）、`mock-interview`（模拟面试）。

@@ -54,7 +54,7 @@
 1. `pwsh -NoProfile -File scripts\install.ps1 -DryRun` 查看计划 → 正式运行。
 2. 检查注册壳两文件存在、`customSkillDirs` 已注入本机路径。
 3. 新开会话选「简历大师」预设 → persona/skill 生效（会话可读 `$env:DSH_CV_ROOT`）。
-4. 所有会话技能目录出现 `resume-writing`（触发词：写简历 / 分析 JD / magicv JSON）。
+4. 所有会话技能目录出现 `cv-intake` / `resume-writing` / `interview-pitch` / `mock-interview`（触发词：建档 / 写简历 / 分析 JD / 按 JD 选项目 / magicv JSON）。建链由 `install.ps1` 遍历 `preset\skills\*` 全量完成，新增技能子目录无需改脚本。
 
 ## 五、路径约定（模型侧）
 

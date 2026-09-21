@@ -1,8 +1,8 @@
 {
   "id": "resume-master",
   "name": "简历大师（Resume Master）",
-  "version": "0.3.0",
-  "description": "求职全链路助手：建档 → JD 理解 → 改动申请单（蓝本零改动）→ ★用户批准 → 生成 → 三重校验（结构/数字溯源/改动合规）→ 真实渲染；附项目讲稿与模拟面试两个技能",
+  "version": "0.4.0",
+  "description": "求职全链路助手：拷问式建档（cv-intake）→ JD 理解 → 项目取舍（按 JD 六维打分 + 用户裁决）→ 改动申请单（蓝本零改动）→ ★用户批准 → 生成 → 三重校验（结构/数字溯源/改动合规）→ 真实渲染；附项目讲稿与模拟面试两个技能",
   "contentRoot": "@DSH_CV_ROOT@",
   "files": [
     "agent.cordis.yml",
@@ -10,6 +10,9 @@
     "prompts/01-system.md",
     "prompts/02-workflow.md",
     "prompts/03-rules.md",
+    "skills/cv-intake/SKILL.md",
+    "skills/cv-intake/references/frontier-建档问题树.md",
+    "skills/cv-intake/references/jd-project-fit.md",
     "skills/resume-writing/SKILL.md",
     "skills/interview-pitch/SKILL.md",
     "skills/interview-pitch/references/pitch-template.md",
@@ -17,5 +20,5 @@
     "skills/mock-interview/SKILL.md",
     "skills/mock-interview/references/question-bank.md"
   ],
-  "notes": "manifest.json 为方案文档约定的元信息清单；DSH roster 实际读取的是 agent.cordis.yml（装配）与 preset.yml（展示文本），本文件不被 roster 读取。技能目录 preset/skills 由 agent.cordis.yml 的 skill-filesystem.customSkillDirs 整目录挂载，新增技能子目录无需改组合。"
+  "notes": "manifest.json 为方案文档约定的元信息清单；DSH roster 实际读取的是 agent.cordis.yml（装配）与 preset.yml（展示文本），本文件不被 roster 读取。技能目录 preset/skills 由 agent.cordis.yml 的 skill-filesystem.customSkillDirs 整目录挂载，新增技能子目录无需改组合；全局技能根（<DSH_HOME>\\skills）由 scripts\\install.ps1 遍历 preset\\skills\\* 全量建链。cv-intake 的 frontier 机制改造自 mattpocock/skills 的 grilling（MIT，Copyright (c) 2026 Matt Pocock），为真重写而非逐字复制。"
 }

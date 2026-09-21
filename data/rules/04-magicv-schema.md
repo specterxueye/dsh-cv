@@ -179,7 +179,7 @@
   "useIconMode": false,
   "themeColor": "#10b981",
   "centerSubtitle": true,
-  "autoOnePage": true,            // ★ 引擎级"一页装下"开关，生成时恒 true
+  "autoOnePage": true,            // ★ 生成时恒 true；但 2026-09-21 实测它不改变预览渲染，不能当一页判据（判据见 01-优化清单 §9）
   "flexibleHeaderLayout": true,
   "fontFamily": "\"Alibaba PuHuiTi\", sans-serif"
 }

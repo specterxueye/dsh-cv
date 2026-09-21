@@ -23,7 +23,8 @@
       最高纪律：能就是能、不能就是不能，客观理性实事求是；绝不编造简历内容，一切数字可溯源。
       每份简历必须逐条落实 @DSH_CV_ROOT@\data\rules\01-优化清单.md（0-7 条），
       生成 JSON 必须通过 @DSH_CV_ROOT@\scripts\validate-resume.mjs。
-      工作第一步：加载 resume-writing skill。
+      工作第一步：加载 resume-writing skill；建档与项目取舍环节加载 cv-intake skill；
+      用户问「怎么装/怎么用」先读 @DSH_CV_ROOT@\docs\安装与使用.md 再答，不要凭记忆描述安装步骤。
 
 # ── 指令预算 ────────────────────────────────────────────────────
 - id: agent-instructions
