@@ -42,16 +42,39 @@ const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const readText = (p) => readFileSync(p, 'utf8');
 
 // ---------- 1. 汇总事实语料 ----------
+//
+// ★ 作废口径排除（2026-09-21 加）：
+//   本脚本的判据是「该数字在语料里出现过就算命中」（去空白后的子串匹配），
+//   于是一个**已作废**的数字只要还留在语料里，就永远能通过溯源——包括
+//   “原 127 条实为 105 条”这类**更正句本身**也会让 127 条合法。这叫语料污染。
+//   处理：任何含【作废】/ [RETRACTED] 标记的**行**不进语料。
+//   纪律：口径作废时，把记录该口径的那一行加上【作废】前缀；更正说明若需保留数字，
+//         也必须在同一行带【作废】标记。
+const RETRACTED_RE = /【作废】|\[RETRACTED\]/;
+const stripRetracted = (text) => {
+  const lines = String(text).split(/\r?\n/);
+  const kept = [];
+  let dropped = 0;
+  for (const line of lines) {
+    if (RETRACTED_RE.test(line)) dropped += 1;
+    else kept.push(line);
+  }
+  return { text: kept.join('\n'), dropped };
+};
+
 const corpusParts = [];
 const corpusNames = [];
+let retractedLines = 0;
 const addCorpus = (path, label) => {
   if (!path) return;
   if (!existsSync(path)) {
     console.warn(`[warn] 语料不存在，已跳过：${path}`);
     return;
   }
-  corpusParts.push(readText(path));
-  corpusNames.push(`${label}: ${path}`);
+  const { text, dropped } = stripRetracted(readText(path));
+  retractedLines += dropped;
+  corpusParts.push(text);
+  corpusNames.push(`${label}: ${path}${dropped ? `（已排除 ${dropped} 行作废口径）` : ''}`);
 };
 
 const profilePath = flag('--profile');
@@ -176,6 +199,9 @@ for (const m of misses) {
 console.log('== audit-facts（数字溯源审计）==');
 console.log(`   简历   : ${resumePath}`);
 corpusNames.forEach((n) => console.log(`   语料   : ${n}`));
+if (retractedLines) {
+  console.log(`   ⛔ 作废口径: 已排除 ${retractedLines} 行（带【作废】标记，不作为溯源依据）`);
+}
 console.log(`   数字出现: ${findings.length} 次 / 去重 ${seen.size} 个`);
 console.log(`   ✅ 命中 : ${hits.length} 次 / 去重 ${[...seen.values()].filter(Boolean).length} 个`);
 console.log(`   ⚠️ 未命中: ${uniqMiss.length} 个（去重后）`);
