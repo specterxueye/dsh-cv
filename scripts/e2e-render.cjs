@@ -1,25 +1,26 @@
-const { chromium } = require('playwright-core');
+const { requireChromium, launchOptions } = require('./lib/browser.cjs');
+const { chromium } = requireChromium('e2e-render.cjs');
 const path = require('path');
 
 /**
- * e2e-render.cjs — magicv.art 真实渲染验证（一页装下验收）
- * 用法: node e2e-render.cjs <resume.json> [shotPrefix]
+ * e2e-render.cjs — magicv.art 真实渲染验证
+ * 用法: node e2e-render.cjs <resume.json> [shotPrefix] [--chrome <浏览器路径>]
  * 流程: dashboard → 导入简历 → workbench 渲染（重试环）→ 测量 A4 画布高度 → 截图 → 判定
- * 一页标准: A4 = 794 × 1123 px（@96dpi）；实测 1099-1103px 历史验收通过
+ *
+ * ⚠️ 判据是**旧口径**：量 `[class*="210mm"]` 容器 offsetHeight（实测恒为约 1750px，对任何稿子都不变）。
+ *    现行一页判据用 `render-measure3.cjs`（magicv 自画的「第N页结束」标记，y ≈ 1073.6px）。
+ *    本脚本保留用于「导入是否成功 / 截图目检」，**不要再用它的 OVERFLOW 结论判页数**。
  */
 
 const file = process.argv[2];
 const shotPrefix = process.argv[3] || 'verify';
-if (!file) { console.error('用法: node e2e-render.cjs <resume.json> [shotPrefix]'); process.exit(1); }
+if (!file) { console.error('用法: node e2e-render.cjs <resume.json> [shotPrefix] [--chrome <浏览器路径>]'); process.exit(1); }
 
 const A4_WIDTH = 794, A4_HEIGHT = 1123;
 
 (async () => {
   // 注意：持久 profile 目录已损坏（dashboard domLen<5000），改用普通 context（导入→渲染同进程内完成，无需持久存储）
-  const browser = await chromium.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    headless: true,
-  });
+  const browser = await chromium.launch(launchOptions({ headless: true }));
   const page = await browser.newPage({ viewport: { width: 1300, height: 1700 } });
   const domLen = () => page.evaluate(() => document.documentElement.outerHTML.length).catch(() => -1);
 

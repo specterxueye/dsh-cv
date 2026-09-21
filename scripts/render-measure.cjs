@@ -1,16 +1,16 @@
 // 渲染测量 v2 —— 测「页面内实际内容高度」，而不是被面板拉伸的容器高度
-// 用法: node render-measure.cjs <resume.json> [shotPrefix]
-const { chromium } = require('playwright-core');
+// 用法: node render-measure.cjs <resume.json> [shotPrefix] [--chrome <浏览器路径>]
+// 注：已被 render-measure3.cjs（「第N页结束」标记判据）取代，保留备查
+const { requireChromium, launchOptions } = require('./lib/browser.cjs');
+const { chromium } = requireChromium('render-measure.cjs');
 
 const file = process.argv[2];
 const shot = process.argv[3] || 'measure';
-if (!file) { console.error('用法: node render-measure.cjs <resume.json> [prefix]'); process.exit(1); }
+if (!file) { console.error('用法: node render-measure.cjs <resume.json> [prefix] [--chrome <浏览器路径>]'); process.exit(1); }
 const A4_H = 1123; // 794 x 297/210
 
 (async () => {
-  const browser = await chromium.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', headless: true,
-  });
+  const browser = await chromium.launch(launchOptions({ headless: true }));
   const page = await browser.newPage({ viewport: { width: 1300, height: 1700 } });
   const domLen = () => page.evaluate(() => document.documentElement.outerHTML.length).catch(() => -1);
 

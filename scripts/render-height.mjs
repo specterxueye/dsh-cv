@@ -4,14 +4,17 @@
  * 用法: node scripts/render-height.mjs <resume.json>
  * 原理：按魔法 classic 模板参数在 headless 页里逐段真排版量高，求和 = 画布内容总高。
  * 一页参照：A4 @96dpi = 1123px；与已验证一页的金标准成品同法对比（判定：新稿 ≤ 基准）。
- * 依赖：playwright-core（用 $env:PLAYWRIGHT_DIR 指向包含 node_modules 的目录，或 --engine 参数）
- * Chrome 路径：$env:CHROME_PATH 或默认从常见安装位置探测（可被 --chrome 覆盖）。
+ * 依赖：playwright-core（用 $env:PLAYWRIGHT_DIR 或 $env:DSH_CV_PLAYWRIGHT_DIR 指向包含 node_modules 的目录，
+ *       或在本仓库执行 npm i -D playwright-core）
+ * Chrome 路径：--chrome <路径> 或 $env:DSH_CV_CHROME / $env:CHROME_PATH，未指定则按平台常见位置探测
+ *       （解析逻辑统一在 scripts/lib/browser.cjs）
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
+import browserEnv from './lib/browser.cjs';
 
 const file = process.argv[2];
 if (!file) { console.error('usage: node render-height.mjs <resume.json>'); process.exit(1); }
@@ -27,14 +30,8 @@ const paragraphSpacing = gs.paragraphSpacing ?? 3;
 const sectionSpacing = gs.sectionSpacing ?? 10;
 const pagePadding = gs.pagePadding ?? 34;
 
-// 找一个能解析 playwright-core 的 require —— 先 cwd，再看 $env:PLAYWRIGHT_DIR
-const tryRequire = async () => {
-  const bases = [process.cwd(), process.env.PLAYWRIGHT_DIR].filter(Boolean);
-  for (const base of bases) {
-    try { return createRequire(resolve(base, 'package.json'))('playwright-core'); } catch (e) {}
-  }
-  return null;
-};
+// playwright-core 的解析统一走 scripts/lib/browser.cjs（cwd → DSH_CV_PLAYWRIGHT_DIR → PLAYWRIGHT_DIR → 直接 require）
+const tryRequire = async () => browserEnv.loadPlaywright();
 
 const strip = (html) => String(html || '')
   .replace(/<strong[^>]*>/gi, '').replace(/<\/strong>/gi, '')
@@ -100,17 +97,17 @@ function buildTestHtml() {
 }
 
 const pw = await tryRequire();
-if (!pw) { console.error('playwright-core 不可用：请设置 $env:PLAYWRIGHT_DIR 到含 node_modules 的目录后重试'); process.exit(2); }
+if (!pw) {
+  console.error(
+    'playwright-core 不可用。任选其一：\n' +
+    '  1) 在本仓库安装：npm i -D playwright-core\n' +
+    '  2) 或指向已装目录：$env:PLAYWRIGHT_DIR="<含 node_modules 的目录>"（Windows）/ export PLAYWRIGHT_DIR=...（macOS/Linux）'
+  );
+  process.exit(2);
+}
 const { chromium } = pw;
 
-const chromeCandidates = [
-  process.env.CHROME_PATH,
-  process.env['ProgramFiles'] ? `${process.env['ProgramFiles']}\\Google\\Chrome\\Application\\chrome.exe` : null,
-  process.env['ProgramFiles(x86)'] ? `${process.env['ProgramFiles(x86)']}\\Google\\Chrome\\Application\\chrome.exe` : null,
-  process.env.LOCALAPPDATA ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe` : null,
-].filter(Boolean).filter(p => existsSync(p));
-
-const browser = await chromium.launch({ executablePath: chromeCandidates[0], headless: true });
+const browser = await chromium.launch(browserEnv.launchOptions({ headless: true }));
 const page = await browser.newPage();
 await page.setContent(buildTestHtml(), { waitUntil: 'networkidle' }).catch(() => {});
 await page.waitForTimeout(400);

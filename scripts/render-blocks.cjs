@@ -1,13 +1,12 @@
 // 版面逐块称重：找出 A4 里每块占多少高度，定位版面被谁吃掉
-const { chromium } = require('playwright-core');
+const { requireChromium, launchOptions } = require('./lib/browser.cjs');
+const { chromium } = requireChromium('render-blocks.cjs');
 const file = process.argv[2];
 const shot = process.argv[3] || 'blocks';
-if (!file) { console.error('用法: node render-blocks.cjs <resume.json> [prefix]'); process.exit(1); }
+if (!file) { console.error('用法: node render-blocks.cjs <resume.json> [prefix] [--chrome <浏览器路径>]'); process.exit(1); }
 
 (async () => {
-  const browser = await chromium.launch({
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', headless: true,
-  });
+  const browser = await chromium.launch(launchOptions({ headless: true }));
   const page = await browser.newPage({ viewport: { width: 1300, height: 1700 } });
   const domLen = () => page.evaluate(() => document.documentElement.outerHTML.length).catch(() => -1);
   let ok = false;
