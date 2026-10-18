@@ -26,22 +26,24 @@
  *   strategy.sectionOverrides.<section> 存在则用之；否则取 profile.<section>。
  */
 import { randomUUID } from 'node:crypto';
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, resolve, join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { defaultOutputPath, writeJsonOutput } from './lib/output.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, '..');
 
 // ---------------------------------------------------------------- CLI 解析
 function parseArgs(argv) {
-  const opts = { profile: null, strategy: null, out: null, quiet: false };
+  const opts = { profile: null, strategy: null, out: null, quiet: false, force: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--profile') opts.profile = argv[++i];
     else if (a === '--strategy') opts.strategy = argv[++i];
     else if (a === '--out') opts.out = argv[++i];
     else if (a === '--quiet') opts.quiet = true;
+    else if (a === '--force') opts.force = true;
     else if (a === '--help' || a === '-h') { usage(); process.exit(0); }
     else { console.error(`未知参数: ${a}`); usage(); process.exit(1); }
   }
@@ -53,7 +55,7 @@ function parseArgs(argv) {
   return opts;
 }
 function usage() {
-  console.log('用法: node scripts/build-resume.mjs --profile <profile.json> --strategy <strategy.json> [--out <path>] [--quiet]');
+  console.log('用法: node scripts/build-resume.mjs --profile <profile.json> --strategy <strategy.json> [--out <path>] [--force] [--quiet]');
 }
 
 // ---------------------------------------------------------------- 工具函数
@@ -106,7 +108,7 @@ function boldKeywords(text, keywords) {
 }
 
 /** 把一组纯文本要点转成 magicv HTML（<ul><li><p>…</p></li></ul>）。
- *  - 条目以 "<ul" 开头 → 视为完整 HTML 片段原样透传（LLM 直写场景）
+ *  - 条目以 "<ul" 开头 → 合并完整列表内的条目（保留同数组的其他要点）
  *  - 条目以 "<li" 开头 → 视为 li 片段，包进 <ul>
  *  - 条目以 "<p"  开头 → 包成 <li>…</li>
  *  - 其余 → 关键词加粗后包 <li><p>…</p></li>
@@ -119,8 +121,11 @@ function bulletsToHtml(bullets, keywords) {
   if (list.length === 0) return '';
   const parts = [];
   for (const item of list) {
-    if (/^<ul/i.test(item)) return item.trim();          // 完整片段直接透传
-    if (/^<li/i.test(item)) parts.push(item.trim());     // li 片段
+    if (/^<ul(?:\s|>)/i.test(item)) {
+      const wrapped = item.match(/^<ul\b[^>]*>([\s\S]*)<\/ul>\s*$/i);
+      if (!wrapped) fatal('完整列表必须是闭合的 <ul>...</ul>');
+      parts.push(wrapped[1].trim());
+    } else if (/^<li/i.test(item)) parts.push(item.trim());     // li 片段
     else if (/^<p/i.test(item)) parts.push(`<li>${item.trim()}</li>`);
     else parts.push(`<li><p>${boldKeywords(item, keywords)}</p></li>`);
   }
@@ -350,11 +355,12 @@ function buildResume(profile, strategy) {
       if (cb.key === 'campus') fillTopCampus(campus, cb.items);
     }
     // 顶层 campus 兜底（无校园自定义区块但 profile 有 campus 时；位置放在技能菜单之前）
-    if (campus.length === 0 && Array.isArray(p.campus) && p.campus.length > 0 && !customBlocksUsed.has('campus')) {
+    const campusSource = sec('campus');
+    if (campus.length === 0 && Array.isArray(campusSource) && campusSource.length > 0 && !customBlocksUsed.has('campus')) {
       customSeq += 1;
       const id = `custom-${customSeq}`;
       pushMenu(id, '校园经历', '🎬', true);
-      customData[id] = p.campus.map(c => ({
+      customData[id] = campusSource.map(c => ({
         id: randomUUID(),
         title: c.name || '',
         subtitle: c.position || '',
@@ -529,11 +535,11 @@ const profile = loadJson(profilePathAbs, 'profile');
 const strategy = loadJson(resolve(process.cwd(), opts.strategy), 'strategy');
 
 const { fileNameBase, data } = buildResume(profile, strategy);
-const outPath = opts.out ? resolve(process.cwd(), opts.out)
-  : join(PROJECT_ROOT, 'output', `${fileNameBase}.json`);
-
-mkdirSync(dirname(outPath), { recursive: true });
-writeFileSync(outPath, JSON.stringify(data, null, 2), 'utf8');
+let outPath;
+try {
+  outPath = opts.out ? resolve(process.cwd(), opts.out) : defaultOutputPath(PROJECT_ROOT, fileNameBase);
+  writeJsonOutput(outPath, data, { force: opts.force, protectedPaths: [profilePathAbs, resolve(process.cwd(), opts.strategy)] });
+} catch (error) { fatal(error.message); }
 
 if (!opts.quiet) {
   info(`[生成成功] ${outPath}`);

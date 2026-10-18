@@ -10,6 +10,7 @@ scripts/_merge-user-edits.mjs
 # ── 运行时产物与本地环境 ──────────────────────────────
 output/
 node_modules/
+.test-runs/
 *.log
 .DS_Store
 Thumbs.db

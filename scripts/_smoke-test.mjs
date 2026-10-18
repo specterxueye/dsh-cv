@@ -111,7 +111,7 @@ writeFileSync(pp, JSON.stringify(profile, null, 2), 'utf8');
 writeFileSync(sp, JSON.stringify(strategy, null, 2), 'utf8');
 
 console.log('--- 1. 生成 ---');
-execFileSync(process.execPath, [join(ROOT, 'scripts', 'build-resume.mjs'), '--profile', pp, '--strategy', sp, '--out', op], { stdio: 'inherit' });
+execFileSync(process.execPath, [join(ROOT, 'scripts', 'build-resume.mjs'), '--profile', pp, '--strategy', sp, '--out', op, '--force'], { stdio: 'inherit' });
 
 console.log('\n--- 2. 校验 ---');
 let code = 0;

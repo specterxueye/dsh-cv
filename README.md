@@ -111,6 +111,7 @@ pwsh -NoProfile -File scripts\install.ps1
    node "scripts\build-resume.mjs" --profile <profile.json> --strategy <strategy.json> --out <临时.json> [--quiet]
    node "scripts\merge-blueprint.mjs" --blueprint <蓝本.json> --content <临时.json> --out <新稿.json> --title "<姓名>-简历-<岗位>"
    ```
+   生成与合并默认拒绝覆盖已有文件。确认替换输出时加 `--force`；输入基线、蓝本及其硬链接始终受保护。默认输出名仅接受单个文件名，选择目录请用 `--out`。
 7. **三重校验（缺一不可）**：
    ```powershell
    node "scripts\validate-resume.mjs" <新稿.json> [--strict]              # ① 结构
@@ -136,6 +137,12 @@ pwsh -NoProfile -File scripts\install.ps1
 ## 测试与验证
 
 ```powershell
+# 核心行为回归（纯合成资料，不读取 users/test/output）
+npm test
+
+# 离线浏览器安全回归（需可选 playwright-core 与本机浏览器）
+npm run test:browser
+
 # 仓库自检（CI 与本地同一入口：脚本语法 / JSON / 技能完整性 / 零硬编码路径 / 文档链接 / manifest 一致）
 node scripts\check.mjs          # 或 npm run check
 

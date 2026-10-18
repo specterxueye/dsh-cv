@@ -15,6 +15,7 @@
  *   - approved 不为 true 时，本脚本直接拒绝核对（视为未批准）。
  */
 import { readFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const argv = process.argv.slice(2);
 const flag = (n) => {
@@ -33,24 +34,26 @@ const J = (p) => JSON.parse(readFileSync(p, 'utf8'));
 const base = J(basePath);
 const next = J(newPath);
 
-const norm = (v) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : JSON.stringify(v ?? null));
+const norm = (v) => JSON.stringify(v);
 
-// 逐字段收集路径 → 归一化值（跳过易变元数据与照片）
-const SKIP = new Set(['id', 'createdAt', 'updatedAt', 'photo', 'photoFile', 'activeSection', 'draggingProjectId']);
+// 保留值类型和容器形态；照片参与授权，仅在报告中隐藏其内容。
+const SKIP = new Set(['id', 'createdAt', 'updatedAt', 'activeSection', 'draggingProjectId']);
 const flat = (node, path, out) => {
   if (node === null || node === undefined) {
-    out.set(path, '');
+    out.set(path, norm(node));
     return;
   }
   if (Array.isArray(node)) {
-    if (node.length === 0) out.set(path, '[]');
+    out.set(path, '[array]');
     node.forEach((v, i) => flat(v, `${path}[${i}]`, out));
     return;
   }
   if (typeof node === 'object') {
+    out.set(path, '[object]');
     for (const [k, v] of Object.entries(node)) {
       if (SKIP.has(k)) continue;
-      flat(v, path ? `${path}.${k}` : k, out);
+      const child = /^[A-Za-z_$][\w$-]*$/.test(k) ? (path ? `${path}.${k}` : k) : `${path}[${JSON.stringify(k)}]`;
+      flat(v, child, out);
     }
     return;
   }
@@ -79,8 +82,10 @@ console.log(`   ➕ 新增字段 ${added.length} / ➖ 删除字段 ${removed.le
 
 const label = (k) => (added.includes(k) ? '➕' : removed.includes(k) ? '➖' : '✏️');
 const brief = (k) => {
-  const before = (a.get(k) ?? '').toString();
-  const after = (b.get(k) ?? '').toString();
+  const summarize = (value) => /(?:^|\.)(photo|photoFile)$/.test(k) && value !== undefined
+    ? `sha256:${createHash('sha256').update(value).digest('hex')}` : (value ?? '').toString();
+  const before = summarize(a.get(k));
+  const after = summarize(b.get(k));
   return `      蓝本: ${before.slice(0, 110) || '(空)'}\n      新稿: ${after.slice(0, 110) || '(空)'}`;
 };
 all.slice(0, 60).forEach((k) => {
@@ -104,6 +109,10 @@ if (req.approved !== true) {
   process.exit(1);
 }
 const touched = Array.isArray(req.touchedFields) ? req.touchedFields : [];
+if (touched.some(t => typeof t !== 'string' || !t.trim())) {
+  console.error('touchedFields 必须只包含非空字段路径');
+  process.exit(2);
+}
 const covered = (k) => touched.some((t) => k === t || k.startsWith(`${t}.`) || k.startsWith(`${t}[`));
 const violations = all.filter((k) => !covered(k));
 
