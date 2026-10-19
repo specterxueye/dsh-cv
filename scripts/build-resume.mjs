@@ -28,11 +28,7 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { defaultOutputPath, writeJsonOutput } from './lib/output.mjs';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = resolve(__dirname, '..');
 
 // ---------------------------------------------------------------- CLI 解析
 function parseArgs(argv) {
@@ -537,7 +533,7 @@ const strategy = loadJson(resolve(process.cwd(), opts.strategy), 'strategy');
 const { fileNameBase, data } = buildResume(profile, strategy);
 let outPath;
 try {
-  outPath = opts.out ? resolve(process.cwd(), opts.out) : defaultOutputPath(PROJECT_ROOT, fileNameBase);
+  outPath = opts.out ? resolve(process.cwd(), opts.out) : defaultOutputPath(dirname(profilePathAbs), fileNameBase);
   writeJsonOutput(outPath, data, { force: opts.force, protectedPaths: [profilePathAbs, resolve(process.cwd(), opts.strategy)] });
 } catch (error) { fatal(error.message); }
 

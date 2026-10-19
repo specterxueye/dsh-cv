@@ -1,211 +1,89 @@
-# dsh-cv · 简历大师（Resume Master）
+# dsh-cv · DeepSeek Harness 求职插件
 
 [![ci](https://github.com/specterxueye/dsh-cv/actions/workflows/ci.yml/badge.svg)](https://github.com/specterxueye/dsh-cv/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![node](https://img.shields.io/badge/node-%E2%89%A516-brightgreen.svg)](package.json)
-[![version](https://img.shields.io/badge/version-0.5.0-informational.svg)](CHANGELOG.md)
 
-面向中文求职场景的简历写作工具集：基于**人物事实画像**与目标岗位**招聘要求（JD，文字或图片）**，生成可直接导入 [magicv.art](https://magicv.art) 的标准简历 JSON。
+在 DSH 中整理真实经历、按招聘要求（JD）选择与改写内容，生成可导入 [MagicV](https://magicv.art) 的中文简历 JSON，并可继续准备项目讲稿和模拟面试。
 
-核心设计原则：**事实可溯源 · 针对岗位定制 · 一页装下 · 零编造**。
+重点是事实整理、职责边界、改写确认与变更保护。数字来源命中不证明语义真实，也不承诺通过 ATS、提升录用率或自动完成 PDF 验收。
 
-> 📖 第一次安装与上手：[安装与使用](docs/安装与使用.md)（装什么、怎么装、装完怎么确认、怎么用）｜完整流程见 [用户手册](docs/user-guide.md)｜版本变更见 [CHANGELOG](CHANGELOG.md)
+## 安装与兼容
 
-## 特性
-
-- **人物画像建档**：对话式采集 → 结构化事实基线（每条事实带来源），支持从已有简历/材料反解析。每个用户一组四件套：
-  - **拷问式建档（`cv-intake` 技能）**：frontier 轮次提问法——每轮把当前能问的问题**整批列出、每题带推荐答案**，用户回"1✅ 2改成 X"即可，不必自己组织语言；成绩单/证书/项目仓库等**可自查项派 subagent 去查**，不占用用户。机制改造自 [mattpocock/skills](https://github.com/mattpocock/skills) 的 `grilling`（MIT），并针对"个人史实只有本人知道"重写了事实/决策分流
-  - `<名字>-事实基线.json` —— **唯一事实源**：`basic / education / experience / projects / campus / awards / skills / selfEvaluation`，外加 `_rules` 规则区（待确认项 / 用户已确认回填 / 口径核验 / **作废口径登记**）。`status: pending` 的事实不得写入简历
-  - `<名字>-事实溯源清单.json` —— 每条事实回指出处，并记录「衍生简历自述 vs 一手材料」的交叉校验结论
-  - `<名字>-画像.md` —— **内部资产**：卖点、避雷点、面试口径与投递策略；**避雷点不进简历**
-  - `项目素材库.md` —— 项目细节素材池，供换岗位时重组叙事
-  - 口径作废时**不删记录**：把那一行标上 **`【作废】`**，溯源审计会自动将它排除出语料（见下"三重可执行门槛"）
-- **JD 理解**：文字或图片输入（图片自动识别）；输出硬性要求 / 软性要求 / 加分项 / 关键词表 / **缺口清单**（画像中缺失的能力如实标注，绝不编造）
-- **定制撰写**：按岗位重排经历、关键词加粗、技能分层（范本五规律）、自我评价采用"结论+论证"
-- **magicv JSON 生成**：自动处理菜单-数据键一致（customData ↔ menuSections）、顶层 campus 双写、`autoOnePage` 一页开关、HTML 内容规范、UUID
-- **校验与诊断**：结构校验器（必填字段/HTML 结构/菜单一致性/UUID）+ 0-7 优化清单逐项自检 + 无编造核查
-- **蓝本壳复用**：以"已在 magicv.art 真实渲染验收过"的成品为壳（版式参数/照片/菜单结构），只替换内容层——避免每次从零调参试错（`scripts/merge-blueprint.mjs`）
-- **★ 改动申请单与确认门**：**蓝本默认零改动**；替换/新增/删除/重排任何项目内容都要先出方案（改哪条/现状/拟改/为什么/影响/哪些不动），**用户批准后才生成**。未获批准的产物不得交付
-- **三重可执行门槛**：结构校验（`validate-resume.mjs`）+ **数字溯源审计**（`audit-facts.mjs`：稿子里每个数字都要能在事实基线/溯源清单/语料里找到出处，查不到即退出码 1）+ **改动合规核对**（`diff-resume.mjs`：实际改动必须 ⊆ 申请单批准范围，越权即报错）
-  - **⛔ 作废口径排除（语料污染防护）**：溯源审计的判据是"该数字在语料里出现过"，于是**一个已作废的数字只要还留在语料里，就永远能通过溯源**——连"原 X 条实为 Y 条"这类**更正句本身**也会让 X 合法。故 `audit-facts.mjs` 会剔除任何含 `【作废】` / `[RETRACTED]` 标记的**行**。口径作废时把记录那一行标上标记即可，无需删除历史。**注意：JSON 语料里标记要写在字符串值内部**（写成行首会破坏 JSON）
-- **按 JD 取舍项目（`cv-intake` 场景 B）**：先给候选池（`项目素材库.md` ＋ 蓝本内未显示项目）按**六维打分**（关键词命中/职能同型/级别真实性/角色主导/可量化可溯源/差异化），再**一轮列出"点亮哪 3-4 项、收起哪几项、为什么"**由用户逐项裁决；结果写进改动申请单 `projectVisibility` 与 `changes(op:visibility)`。**未显示 ≠ 删除**，用户明确排除项永不进池
-- **模块化项目库**：一份 JSON 内写入全部备选项目，用 `visible` 开关按 JD 点亮需要的 3-4 项（写了但不展示，随时切换）
-- **面试侧技能**：`interview-pitch`（按岗位角度生成项目讲稿，含 2-3 条可能追问）+ `mock-interview`（友好复盘 / 高压追问 × BQ / JD 面 / 混合）
-- **写作语料库**：技术岗（含后端/前端/算法AI/测试/运维）、央国企、行业（半导体/政务/运营商/新能源）共 100+ 条岗位规律与句库，全部来自网络检索提炼并标注来源方向，**不复制任何真实简历原文**
-
-## 架构
-
-通用资产与个人数据严格分离：
-
-```
-dsh-cv/
-├── preset/          # DSH 预设（cordis.yml / prompts 工作流与规则引用 / skills 技能）
-│   └── skills/      #   cv-intake（拷问式建档 + 按 JD 取舍项目）
-│                    #   resume-writing（简历写作）/ interview-pitch（项目讲稿）/ mock-interview（模拟面试）
-├── data/            # 通用写作资产（rules 规则库 / samples 范文规律 / phrases 句式库）
-├── scripts/         # 生成器 build-resume / 蓝本合并 merge-blueprint / 结构校验 validate-resume
-│   ├── lib/         #   数字溯源审计 audit-facts / 改动合规核对 diff-resume
-│   │                #   browser.cjs（浏览器与依赖解析，零硬编码路径）
-│   └── check.mjs    #   仓库自检（CI 与本地同一入口）
-├── profile/         # profile / jd / strategy 输入模板（JSON schema）
-├── docs/            # 安装与使用 · 用户手册 · 面试辅导方法 · 架构评估
-├── users/           # 个人数据层（每用户独立目录，仅存本机，不入库）
-│   └── <用户名>/    #   事实基线 / 画像 / output 成品与申请单 / review 档案
-├── .github/         # CI（跨三平台 × Node 16/20 跑自检 + Windows 跑安装预演）
-├── LICENSE / CHANGELOG.md / THIRD-PARTY-NOTICES.md
-├── package.json / .gitattributes / .editorconfig
-└── README.md
-```
-
-## 环境要求
-
-- **运行环境**：DeepSeek Harness（DSH）环境（技能挂载 + junction；见下）
-- **脚本**：Node.js ≥ 16（生成/校验/审计脚本**零第三方依赖**，独立于 DSH 亦可运行）
-- **渲染验收（可选）**：本机已装 Chrome/Edge/Chromium ＋ `playwright-core`
-  ```powershell
-  npm i -D playwright-core        # 或在别处装好后设 $env:PLAYWRIGHT_DIR 指向那个目录
-  ```
-  > 浏览器路径无需配置：脚本用 `--chrome <路径>` / `$DSH_CV_CHROME` / `$CHROME_PATH` / 平台默认安装位置依次探测，都没有时回退 playwright 的 `channel:"chrome"`。
-
-## 安装（Windows）
+当前适配基准：DSH `0.2.0-rc.1`、Node 22/24 LTS。保留宿主标准预设；插件只注册四个技能，不另搭 Agent 框架或接管模型。
 
 ```powershell
 git clone https://github.com/specterxueye/dsh-cv.git
 cd dsh-cv
-pwsh -NoProfile -File scripts\install.ps1
+dsh plugin --profile web add .
+# Windows 辅助入口：pwsh -NoProfile -File ./scripts/install.ps1 -Profile web
 ```
 
-安装脚本自动完成五件事：
+macOS/Linux 使用相同的 DSH 原生命令。桌面托管 profile 使用宿主插件管理入口。尚未发布新版 tgz 时使用当前目录；不要把历史 v1.0.0 Release 当作本轮修复版。
 
-1. 设置用户级环境变量 `DSH_CV_ROOT` = 仓库根；
-2. **遍历 `preset\skills\*` 全量建立技能联接** `<DSH_HOME>\skills\<技能名>` → 仓库 `preset\skills\<技能名>`（新增技能子目录无需改脚本）；
-3. 渲染预设注册壳（模板注入本机路径）；
-4. **安装自检**（环境变量 / 技能联接 / 注册壳），打印 `[OK]` 逐项结果；
-5. 打印摘要与「下一步怎么用」。
+安装成功后重开相应 profile，验证 cv-intake、resume-writing、interview-pitch、mock-interview 均可加载。旧全局同名技能需先核验来源，避免串版本。完整步骤、移除和恢复见 [安装与使用](docs/安装与使用.md)。
 
-**不需要管理员权限**（用目录联接 Junction）；**克隆到任意目录均可**（含空格/中文路径）。装完自检应显示 **3/3 通过、技能联接 4/4 就位**：
+## 怎么用
 
+1. 给出已有简历、项目材料和目标 JD；没有材料时逐步梳理，不必一次备齐。
+2. 核对事实摘要与关键缺口；职责、成绩、数字以本人确认与提供的来源为边界。
+3. 审阅项目取舍、改写范围、栏目和页数方案，明确批准后生成。
+4. 获取可读正文和 JSON；按需要导入 MagicV 并核对导出 PDF。面试讲稿与逐题模拟是可选后续。
+
+首次创建与已有稿修改有不同的审阅要求，完整流程见 [使用手册](docs/user-guide.md)；AI 执行流程见 [工作流](preset/prompts/02-workflow.md)。
+
+## 资源和个人资料
+
+插件包只提供技能、规则、模板与脚本。每位用户选择稳定的数据目录，保存事实基线、来源、偏好、方案和成品；更新或卸载插件不搬动该目录。旧仓库 users 目录可继续显式使用，迁移须另行批准。
+
+```text
+dsh-cv/                 用户选定的数据目录/
+  cordis.patch.yml        事实基线.json
+  preset/skills/          来源与个人偏好
+  preset/prompts/         策略.json
+  data/rules/             output/
+  profile/                 简历.json、讲稿、批准记录
+  scripts/
 ```
-== 安装自检 ==
-  [OK]  DSH_CV_ROOT（用户级）= D:\...\dsh-cv
-  [OK]  技能联接 4/4 就位：cv-intake, interview-pitch, mock-interview, resume-writing
-  [OK]  预设注册壳就绪且已注入本机根：D:\dsh\.agent-presets\resume-master
-```
 
-新开 DSH 会话即可使用（触发词：建档 / 写简历 / 分析 JD / 按 JD 选项目 / magicv JSON），或在新建会话时选择「简历大师」预设。升级：`git pull` 后重跑 `install.ps1`（幂等）。
+技能从宿主提供的 resourceBase.path 定位自己的包资源，不依赖 DSH_CV_ROOT 或递归搜索。默认成品写在事实基线同级的 output；同名输出默认拒绝覆盖，需要确认替换时显式使用 --force，输入始终不能作为覆盖目标。
 
-> 装不上、技能看不见、换电脑、卸载、以及每个触发词对应什么，见 **[安装与使用](docs/安装与使用.md)**（含常见问题表与手工核对命令）。
+## 独立使用脚本
 
-## 快速开始
-
-1. **建档**：说一句"帮我写简历"即自动加载 `cv-intake` 技能——先要现成材料（已有简历/成绩单/证书/项目仓库，派 subagent 反解析后逐条回显确认），没材料就走 7 轮 frontier 提问（**每轮整批问、每题带推荐答案、可跳过**）→ 生成 `users\<用户名>\<名字>-事实基线.json`、画像与 `项目素材库.md`（卖点/避雷点为内部资产）。
-2. **提供 JD**：粘贴文字或提供图片路径（图片自动识别，识别不确定项会要求确认）。
-3. **选项目（按 JD 取舍）**：候选池按六维打分，一轮给出"点亮 3-4 项 / 收起哪几项 / 命中了哪条 JD 要求"，由你逐项裁决（`cv-intake` 场景 B）。
-4. **出方案（改动申请单）**：产出 `strategy-*.json` 与 `changerequest-*.json`——后者写明改哪条 / 蓝本现状 / 拟改成什么 / JD 依据 / 影响 / **哪些不动**，并带上第 3 步的 `projectVisibility`。
-5. **★ 确认门**：把申请单呈现给用户并**等待明确批准**（"你看着办""没回复"都不算）；批准后写回 `approved: true` 与 `touchedFields`，才能进入生成。**项目取舍的裁决只是输入，不等于批准。**
-6. **生成**（二选一）：
-   ```powershell
-   # 模式 A（默认·微调）：复制蓝本 → 只改被批准的路径
-   Copy-Item "<蓝本.json>" "<新稿.json>"
-   # 模式 B（大改动·重写）：生成器产出内容层 → 套蓝本壳
-   node "scripts\build-resume.mjs" --profile <profile.json> --strategy <strategy.json> --out <临时.json> [--quiet]
-   node "scripts\merge-blueprint.mjs" --blueprint <蓝本.json> --content <临时.json> --out <新稿.json> --title "<姓名>-简历-<岗位>"
-   ```
-   生成与合并默认拒绝覆盖已有文件。确认替换输出时加 `--force`；输入基线、蓝本及其硬链接始终受保护。默认输出名仅接受单个文件名，选择目录请用 `--out`。
-7. **三重校验（缺一不可）**：
-   ```powershell
-   node "scripts\validate-resume.mjs" <新稿.json> [--strict]              # ① 结构
-   node "scripts\audit-facts.mjs" <新稿.json> --user "users\<用户名>"      # ② 数字溯源（可加 --corpus 补来源）
-   node "scripts\diff-resume.mjs" --base <蓝本.json> --new <新稿.json> --expect <申请单.json>   # ③ 改动合规
-   ```
-   三者全绿才交付；任一不过 → 修复后重跑。
-8. **导入**：打开 magicv.art → 导入 JSON（自带模板渲染，`autoOnePage` 已开启）。
-
-每份交付附《写作说明》：关键词命中、来源说明、缺口清单、清单自检结果、**改动申请单（含批准记录）与差异报告**。
-
-### 面试环节（可选，交付后衔接）
-
-- `interview-pitch` 技能：按同一份 JD 与事实基线生成**项目讲稿**（开场句→背景与问题→我做了什么→结果→与本岗位的连接，含 2-3 条可能追问）
-- `mock-interview` 技能：**模拟面试**（开局选风格与类型 → 一次一问 → 复盘含"最弱回答的改善版"）
-- 概念教学法（把项目里的名词讲透，避免"背答案过不了追问"）：见 [面试辅导方法](docs/面试辅导方法.md)
-
-## 输入格式
-
-- **`--profile`**：见 `profile\profile-template.json`（事实基线，无来源的事实不得写入简历）
-- **`--strategy`**：`jobTitle` / `keywords` / `customBlocks` / `sectionOverrides` / `settings`，见 `profile\strategy-template.json`
-
-## 测试与验证
+核心脚本只依赖 Node 标准库。所有输入与输出路径都可以是绝对路径，从无关目录调用亦可。
 
 ```powershell
-# 核心行为回归（纯合成资料，不读取 users/test/output）
-npm test
-
-# 离线浏览器安全与分页回归（需可选 playwright-core 与本机浏览器）
-npm run test:browser
-
-# 仓库自检（CI 与本地同一入口：脚本语法 / JSON / 技能完整性 / 零硬编码路径 / 文档链接 / manifest 一致）
-node scripts\check.mjs          # 或 npm run check
-
-# 端到端冒烟（任意 magicv 成品 → 反推输入 → 生成 → 校验）
-node "scripts\_smoke-test.mjs" <金标准简历.json>
-
-# 本地近似量高（隔离 HTML，与 MagicV/PDF 渲染不同，仅供排版参考）
-node "scripts\render-height.mjs" <resume.json>
-
-# 网页分页：核对导入正文，用全部文本矩形和图片边界比较分页标记
-# 退出码：0=ONE_PAGE，1=OVERFLOW，2=UNKNOWN/导入失败。最终另验导出 PDF。
-node "scripts\render-measure3.cjs" <resume.json> [截图前缀] [--chrome <浏览器路径>]
-
-# 版面逐块称重：量出每个区块占多少高度，用于定位"版面被谁吃掉"
-node "scripts\render-blocks.cjs" <resume.json> [截图前缀] [--chrome <浏览器路径>]
-
-# 数字来源命中：支持 JSON 和 Markdown/文本；未命中=1，输入或来源错误=2
-node "scripts\audit-facts.mjs" <resume.json或pitch.md> --user "users\<用户名>" [--profile <基线.json>] [--corpus <补充语料.md>]
-
-# 改动合规核对：实际改动 ⊆ 申请单批准范围（越权退出码 1）
-node "scripts\diff-resume.mjs" --base <蓝本.json> --new <新稿.json> [--expect <changerequest.json>]
+node "<资源根>/scripts/paths.mjs" --data-dir "<个人目录>"
+node "<资源根>/scripts/build-resume.mjs" --profile "<个人目录>/事实基线.json" --strategy "<个人目录>/策略.json"
+node "<资源根>/scripts/validate-resume.mjs" "<成品.json>" --strict
+node "<资源根>/scripts/audit-facts.mjs" "<成品.json或讲稿.md>" --profile "<事实基线.json>" --corpus "<补充来源.md>"
+node "<资源根>/scripts/diff-resume.mjs" --base "<原稿.json>" --new "<新稿.json>" --expect "<批准记录.json>"
 ```
 
-> 业务检查失败返回非零；数字检查 1 表示未命中、2 表示输入或来源错误。数字命中不能证明对象、职责、单位或时间真实。当前 CI 仍只运行自检和安装预演；行为回归将在发布治理批次接入。
+蓝本合并使用 merge-blueprint.mjs，复用布局时会严格检查自定义栏目的语义匹配。输入模板见 profile 目录，不能直接把示例内容当作本人经历。
 
-## 数据与隐私
+## 验证与排版
 
-- 个人数据仅存本机 `users\<用户名>\`；**仓库不含任何个人数据**（`users\`、`test\`、`scripts\.smoke\` 均在 `.gitignore` 排除）。
-- 写作规律库为通用资产（网络检索提炼的规律与句式，不复制真实简历原文）。
+```powershell
+npm test                 # 核心行为、来源命中、安装合同；全部使用合成资料
+npm run check            # 语法、资源、技能与文档自检
+npm run test:browser     # 离线安全与分页反例；需 playwright-core 和本机浏览器
+```
 
-## 已知限制
+可选浏览器依赖使用锁文件安装 `npm ci`，或让 PLAYWRIGHT_DIR 指向已有安装。Chrome/Edge 路径由 --chrome、CHROME_PATH 或平台常见位置解析。
 
-1. **安装需运行 `install.ps1`**：预设注册壳依赖本机路径注入（模板 → 渲染），纯手工复制不可用；跨机 clone 后重跑 `install.ps1` 即完成。
-2. **`autoOnePage` 实测不生效，不能当兜底**（2026-09-21 实测）：`autoOnePage: true` 的稿子在 magicv 预览里仍溢出 337px；开关开着与关着读数一致，**它不改变预览渲染**。
-3. **"A4 元素高度"不是页数判据**：早期 `e2e-render.cjs` 量 `[class*="210mm"]` 元素高度，读数恒为 1750px——对任何简历都不变（极简探针把内容清空到每区块一行，仍是 1750px），量为**预览容器**而非内容。真判据是 magicv **自己画的「第N页结束」标记**：标记 y ≈ `A4 页高 1123px − 上下页边距`（1123−2×25=1073，实测 1073.6）。该画布会随内容长高，**不会截断内容**。
-4. 图片 JD 识别依赖视觉桥可用性；识别不确定时会列出待确认项。
-5. magicv 的顶层 `campus` 与 `customData` 存在双写设计，须经校验器守护，防止渲染缺失。
-6. **magicv 记录会与仓库 JSON 分叉**：每次「导入简历」新建一条**同名**记录，反复试验后工作台会堆满同名稿；用户若在 UI 里手改过某条，那条就与 JSON 不再一致（本次即发现一条手改记录含 JSON 中不存在的表述）。**以 JSON 为准、只做导入导出**，手改须回流到 JSON（见路线图）。
-7. **安装脚本只有 Windows 版**（`install.ps1`，用目录联接）：脚本本体（生成/校验/审计/渲染）已是跨平台 Node，但 macOS/Linux 的安装与技能联接需手工完成（见路线图）。
+- render-height.mjs：禁脚本、禁外部请求的本地近似量高，不能代替 MagicV。
+- render-measure3.cjs：在线导入所选 JSON，核对正文锚点，比较全部文本矩形与分页边界。0=ONE_PAGE、1=OVERFLOW、2=UNKNOWN/失败；最终另验 PDF。当前不自动验收多页 policy。
+- render-blocks.cjs：共享导入核对后测量区块，仅供定位排版问题。
+- 数字检查：0=扫描 token 均命中、1=存在未命中、2=输入或来源错误。对象、职责、单位、时间关系仍需人工核对。
 
-## 路线图
+离线夹具通过不意味着当前外部编辑器界面已验收。验收进度与待办见 [公开发布优化计划](docs/公开发布优化计划.md)。
 
-- **面试防御审查（进行中）**：时间线自洽 / 技能-经历互证 / 表述余量清单化 → 已完成部分：面试讲稿与模拟面试技能、概念教学法（[docs/面试辅导方法.md](docs/面试辅导方法.md)）；待做：把"数字溯源审计"扩展到讲稿与模拟面试答案
-- **一页口径（2026-09-21 统一）**：**一页装下 = 硬标准**（早先"不再以必须一页为目标"的说法**已作废**）。判据=下方「已知限制 3」的真实渲染标记（magicv 自画的「第N页结束」y ≈ 1073.6px）；`autoOnePage` 开关与 "A4 元素高度"读数**都不是判据**。达成顺序：① 删无效内容 ② 精炼措辞 ③ 按岗位相关性裁剪 ④ 收起低相关项目（`visible:false`，未显示 ≠ 删除）。**禁止达标手段**：压行距到不可读（实测"塞进一页"需压到行距 1.07）、关闭自我评价、隐藏核心项目凑页数。装不下时**如实摊牌**——把"要一页须收起哪一项"写进改动申请单，由用户裁决。（完整规则见 `data\rules\01-优化清单.md` §9）
-- 用户手调回流（2026-09-21 暴露为真实痛点）：magicv 每次导入新建同名记录，用户在 UI 里的手改会与仓库 JSON **分叉**。待做：导入前记录指纹、手改差异回流、工作台记录清理
-- `validate-resume` 增加内容密度估算 WARN（当前依赖人工渲染测量）
-- `campus` 双写一致性由 WARN 升级为强制校验（本次已按 schema 第五节对齐，尚未纳入校验器）
-- 权威副本机制：`current.json` 权威副本 + 桌面导入导出，避免多版本漂移
-- 模块化项目库的**可见性清单**：已进申请单模板（`projectVisibility` + `changes(op:visibility)`）与 `cv-intake` 场景 B 的六维打分流程；**待做**：`diff-resume.mjs` 对"实际 `visible` 改动 ⊆ 批准范围"做强制核对（当前仍只核对 `touchedFields` 路径）
-- **跨平台安装**：补 `install.sh`（macOS/Linux：设 `DSH_CV_ROOT` + 为每个 `preset/skills/*` 建符号链接 + 渲染注册壳），与 `install.ps1` 行为对齐
-- **发布流程**：自 0.5.0 起按语义化版本推进（tag + Release 说明取本 CHANGELOG 对应小节）；旧标签 `v1.0.0`（2026-09-05）为历史快照
-- **CI 扩展**：目前 CI 只跑"零依赖自检 + 安装预演"；待做：在 CI 里对 `profile/*-template.json` 跑一次 `build-resume → validate-resume` 的合成用例（不涉个人数据）
+## 隐私与边界
 
-## 致谢
+个人文件默认保存在用户选定的本地目录；仓库忽略 users/test/output 等目录，发布包另用资源允许清单防止误带资料。本地保存不等于处理过程离线：DSH 会把你发送的内容交给所配置模型；MagicV 是可选外部处理环节，在线测量也会导入选定文件。不承诺第三方保留政策或端到端离线。
 
-- 简历数据格式参照开源项目 [JOYCEQL/magic-resume](https://github.com/JOYCEQL/magic-resume)（schema 已按线上成品实测校准）
-- 写作规律提炼自公开网络资源（范文站 / HR 视角帖 / 简历指导材料），每条标注来源方向
-- `cv-intake` 技能的 frontier 轮次提问法改造自开源项目 [mattpocock/skills](https://github.com/mattpocock/skills) 的 `grilling` 技能（MIT License, Copyright (c) 2026 Matt Pocock）。本仓库版本是**针对建档场景的重写**（事实/决策分流、温和档节奏、可自查项派子代理、与 dsh-cv 确认门对接），不是逐字复制
+通用规则在个人任务中只读。项目仍需真实 DSH 会话、外部导入/PDF 和陌生用户反馈来验证公开使用价值，不能以测试数量代替这些结果。
 
-## 许可
+## 许可与来源
 
-本仓库以 **MIT License** 发布（见 [LICENSE](LICENSE)）。第三方内容与各自许可见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)：
-
-- `cv-intake` 的 frontier 机制改造自 `mattpocock/skills` 的 `grilling`（MIT，已保留其版权声明）；
-- magicv.art 的简历 JSON 格式参照 `JOYCEQL/magic-resume`（Apache-2.0，**仅参照数据结构，未复制代码**）；
-- 写作规律语料提炼自公开网络资料，不复制任何真实个人简历原文。
+MIT，见 [LICENSE](LICENSE) 和 [第三方说明](THIRD-PARTY-NOTICES.md)。cv-intake 的 frontier 提问机制改造自 [mattpocock/skills](https://github.com/mattpocock/skills) 的 grilling（MIT，Copyright 2026 Matt Pocock）；MagicV JSON 格式参照 [magic-resume](https://github.com/JOYCEQL/magic-resume)。版本变化见 [CHANGELOG](CHANGELOG.md)。

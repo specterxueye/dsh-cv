@@ -85,7 +85,7 @@ test('fallback output name is checked and normal Chinese names remain valid', (t
   assert.notEqual(bad.status, 0);
   const good = s.run('build-resume.mjs', ['--profile', s.json('profile.json', syntheticProfile), '--strategy', s.json('normal.json', { fileName: '合成候选人 C++ (测试)' }), '--quiet']);
   assert.equal(good.status, 0, good.stderr);
-  assert.ok(existsSync(join(s.root, 'output', '合成候选人 C++ (测试).json')));
+  assert.ok(existsSync(join(s.dir, 'output', '合成候选人 C++ (测试).json')));
 });
 
 test('output refuses silent overwrite and protects input even with force', (t) => {
@@ -106,7 +106,7 @@ test('output refuses silent overwrite and protects input even with force', (t) =
 test('default output refuses a linked root and leaves the outside sentinel unchanged', (t) => {
   const s = sandbox(t), outside = join(s.dir, 'outside');
   mkdirSync(outside);
-  symlinkSync(outside, join(s.root, 'output'), process.platform === 'win32' ? 'junction' : 'dir');
+  symlinkSync(outside, join(s.dir, 'output'), process.platform === 'win32' ? 'junction' : 'dir');
   writeFileSync(join(outside, 'chosen.json'), 'outside sentinel');
   const result = s.run('build-resume.mjs', ['--profile', s.json('profile.json', syntheticProfile), '--strategy', s.json('strategy.json', { fileName: 'chosen' }), '--quiet']);
   assert.notEqual(result.status, 0);

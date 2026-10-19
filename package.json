@@ -19,11 +19,36 @@
     "url": "git+https://github.com/specterxueye/dsh-cv.git"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=22 <25",
+    "dsh": "0.2.0-rc.1"
   },
+  "files": [
+    "cordis.patch.yml",
+    "preset/skills/",
+    "preset/prompts/",
+    "data/",
+    "profile/",
+    "docs/安装与使用.md",
+    "docs/user-guide.md",
+    "docs/工作流.md",
+    "docs/公开发布优化计划.md",
+    "THIRD-PARTY-NOTICES.md",
+    "scripts/build-resume.mjs",
+    "scripts/validate-resume.mjs",
+    "scripts/audit-facts.mjs",
+    "scripts/diff-resume.mjs",
+    "scripts/merge-blueprint.mjs",
+    "scripts/paths.mjs",
+    "scripts/install.ps1",
+    "scripts/sync-preset.ps1",
+    "scripts/render-height.mjs",
+    "scripts/render-measure3.cjs",
+    "scripts/render-blocks.cjs",
+    "scripts/lib/"
+  ],
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/correctness.test.mjs tests/audit.test.mjs",
+    "test": "node --test tests/correctness.test.mjs tests/audit.test.mjs tests/installation.test.mjs",
     "test:browser": "node --test tests/render-safety.test.mjs tests/pagination.test.mjs",
     "check": "node scripts/check.mjs",
     "validate": "node scripts/validate-resume.mjs",
@@ -34,19 +59,13 @@
     "smoke": "node scripts/_smoke-test.mjs",
     "measure": "node scripts/render-measure3.cjs",
     "blocks": "node scripts/render-blocks.cjs",
-    "render-height": "node scripts/render-height.mjs"
+    "render-height": "node scripts/render-height.mjs",
+    "paths": "node scripts/paths.mjs"
   },
   "devDependencies": {
     "playwright-core": ">=1.40"
   },
   "dsh": {
-    "preset": "preset/agent.cordis.yml",
-    "skills": [
-      "preset/skills/cv-intake",
-      "preset/skills/resume-writing",
-      "preset/skills/interview-pitch",
-      "preset/skills/mock-interview"
-    ],
-    "install": "scripts/install.ps1"
+    "bundle": { "patch": "./cordis.patch.yml" }
   }
 }

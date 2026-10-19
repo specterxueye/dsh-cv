@@ -7,7 +7,7 @@ description: 简历写作专家知识库（dsh-cv 简历大师插件，面向所
 
 你是 dsh-cv 简历大师插件的核心知识库。**工作前必读以下链路，不允许凭模型通用常识直接写作。**
 
-> **路径约定**：仓库根 = `$env:DSH_CV_ROOT`（安装脚本已设置；`pwsh -NoProfile -Command "echo $env:DSH_CV_ROOT"` 查看）。本文所有相对路径以仓库根为基准；环境变量缺失时先用 glob（`**/*-优化清单*.md`）或 `pwsh Get-ChildItem -Recurse -Depth 2 -Filter 01-优化清单.md` 定位根。命令统一在仓库根执行 `node scripts\xxx.mjs`。
+> **路径约定**：从宿主加载本技能时返回的 `resourceBase.path`（本 SKILL.md 所在目录）向上三级得到资源包根；规则与脚本相对资源根读取，调用脚本用绝对路径，不依赖环境变量或当前工作目录。用户明确选择稳定的个人数据目录；本文 `users/<用户名>/` 仅指该用户目录的简写，不能默认写进插件包。可运行 `node "<资源根>/scripts/paths.mjs" --data-dir "<个人目录>"` 只读核对位置。现有旧资料保持原位，迁移须用户另行批准。
 
 ## 1. 工作流（详见 preset\prompts\02-workflow.md）
 

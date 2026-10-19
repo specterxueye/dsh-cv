@@ -11,7 +11,7 @@
 
 ## 路径约定
 
-- 仓库根 = `$env:DSH_CV_ROOT`（安装脚本已设置用户级环境变量；`pwsh -NoProfile -Command "echo $env:DSH_CV_ROOT"` 可查看）。
+> **路径约定**：资源根从已加载 SKILL.md 的 resourceBase.path 向上三级获得；规则与脚本只读，脚本用绝对路径调用。用户目录由本人选择，本文 users/<用户名>/ 仅是该目录的简写，不能默认写进插件包；不依赖 DSH_CV_ROOT 或当前工作目录。
 - 下列所有相对路径以仓库根为基准（如 `data\rules\01-优化清单.md`）。
 - 若环境变量缺失或会话工作目录不在仓库内：先用 `glob` 搜索（如 `**/*-优化清单*.md`）或 `pwsh Get-ChildItem -Recurse -Depth 2 -Filter 01-优化清单.md` 定位仓库根，再以其拼路径。
 - 命令统一在仓库根下执行：`node scripts\xxx.mjs`（含空格的路径建模时加引号即可）。

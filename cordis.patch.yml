@@ -1,0 +1,9 @@
+# Config-only bundle. Keep the host's standard tools and register only our skills.
+- insert:
+    - id: dsh-cv-skills
+      name: '@deepseek-ai/dsh-skill-filesystem'
+      config:
+        providerName: dsh-cv
+        includeDefaultRoots: false
+        customSkillDirs:
+          - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('dsh-cv/package.json')), 'preset', 'skills')

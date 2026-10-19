@@ -6,7 +6,7 @@ description: 拷问式建档与项目取舍引擎（dsh-cv 简历大师插件）
 # 拷问式建档与项目取舍（CV Intake）
 
 > **机制出处**：frontier 轮次提问法改造自 [mattpocock/skills](https://github.com/mattpocock/skills) 的 `grilling` 技能（MIT License, Copyright (c) 2026 Matt Pocock）。本文是**重写**，不是逐字复制：上游的公理是"事实归你查、决策归用户"，建档恰好相反，差异见 §3。
-> **路径约定**：仓库根 = `$env:DSH_CV_ROOT`；个性数据写 `users\<用户名>\`。
+> **路径约定**：从宿主加载本技能时返回的 `resourceBase.path`（本 SKILL.md 所在目录）向上三级得到资源包根；规则与脚本相对资源根读取，调用脚本用绝对路径，不依赖环境变量或当前工作目录。用户明确选择稳定的个人数据目录；本文 `users/<用户名>/` 仅指该用户目录的简写，不能默认写进插件包。可运行 `node "<资源根>/scripts/paths.mjs" --data-dir "<个人目录>"` 只读核对位置。现有旧资料保持原位，迁移须用户另行批准。
 > **用户问「怎么装 / 怎么用」时**：先读 `docs\安装与使用.md` 再回答（安装三步、自检命令、触发词表、升级/卸载、常见问题表），**不要凭记忆描述安装步骤**。
 
 ## 1. 它解决什么
