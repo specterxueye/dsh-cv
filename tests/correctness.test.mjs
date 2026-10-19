@@ -3,11 +3,20 @@ import assert from 'node:assert/strict';
 import { existsSync, linkSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { sandbox, syntheticProfile } from './helpers.mjs';
+import renderContract from '../scripts/lib/online-render.cjs';
 
 test('synthetic generated resume passes strict validation', (t) => {
   const s = sandbox(t);
   const result = s.run('validate-resume.mjs', [s.json('valid.json', s.build()), '--strict']);
   assert.equal(result.status, 0, result.stdout + result.stderr);
+});
+
+test('generated resume is accepted by the online import contract including customData', t => {
+  const s = sandbox(t), data = s.build();
+  const options = renderContract.renderArgs([s.json('import.json', data), '--chrome', 'synthetic-browser'], 'synthetic-shot');
+  assert.equal(options.shot, 'synthetic-shot');
+  assert.ok(options.anchors.includes(data.basic.name.replace(/\s+/g, '')));
+  assert.ok(options.anchors.includes(data.projects[0].name.replace(/\s+/g, '')));
 });
 
 for (const [field, value] of Object.entries({ basic: null, globalSettings: null, education: {}, experience: null, projects: 'invalid', campus: 42 })) {

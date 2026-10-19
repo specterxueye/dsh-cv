@@ -140,7 +140,7 @@ pwsh -NoProfile -File scripts\install.ps1
 # 核心行为回归（纯合成资料，不读取 users/test/output）
 npm test
 
-# 离线浏览器安全回归（需可选 playwright-core 与本机浏览器）
+# 离线浏览器安全与分页回归（需可选 playwright-core 与本机浏览器）
 npm run test:browser
 
 # 仓库自检（CI 与本地同一入口：脚本语法 / JSON / 技能完整性 / 零硬编码路径 / 文档链接 / manifest 一致）
@@ -149,23 +149,24 @@ node scripts\check.mjs          # 或 npm run check
 # 端到端冒烟（任意 magicv 成品 → 反推输入 → 生成 → 校验）
 node "scripts\_smoke-test.mjs" <金标准简历.json>
 
-# 渲染高度测量（旧口径：量 A4 元素高度，受预览容器拉伸影响，仅供参考）
+# 本地近似量高（隔离 HTML，与 MagicV/PDF 渲染不同，仅供排版参考）
 node "scripts\render-height.mjs" <resume.json>
 
-# ★ 分页判据（推荐）：定位 magicv 自己画的「第N页结束」标记，判定页数与溢出量
+# 网页分页：核对导入正文，用全部文本矩形和图片边界比较分页标记
+# 退出码：0=ONE_PAGE，1=OVERFLOW，2=UNKNOWN/导入失败。最终另验导出 PDF。
 node "scripts\render-measure3.cjs" <resume.json> [截图前缀] [--chrome <浏览器路径>]
 
 # 版面逐块称重：量出每个区块占多少高度，用于定位"版面被谁吃掉"
 node "scripts\render-blocks.cjs" <resume.json> [截图前缀] [--chrome <浏览器路径>]
 
-# 数字溯源审计：稿子里每个数字回到事实语料核对（未命中退出码 1）
-node "scripts\audit-facts.mjs" <resume.json> --user "users\<用户名>" [--profile <基线.json>] [--corpus <补充语料>]
+# 数字来源命中：支持 JSON 和 Markdown/文本；未命中=1，输入或来源错误=2
+node "scripts\audit-facts.mjs" <resume.json或pitch.md> --user "users\<用户名>" [--profile <基线.json>] [--corpus <补充语料.md>]
 
 # 改动合规核对：实际改动 ⊆ 申请单批准范围（越权退出码 1）
 node "scripts\diff-resume.mjs" --base <蓝本.json> --new <新稿.json> [--expect <changerequest.json>]
 ```
 
-> 三道业务门槛（`audit-facts` / `diff-resume` / `validate-resume`）与自检脚本都设计成**可做门槛**：失败时退出码为 1，可直接串进流水线。CI 会跨 Ubuntu/Windows/macOS × Node 16/20 跑 `check.mjs`，并在 Windows 上跑 `install.ps1 -DryRun`。
+> 业务检查失败返回非零；数字检查 1 表示未命中、2 表示输入或来源错误。数字命中不能证明对象、职责、单位或时间真实。当前 CI 仍只运行自检和安装预演；行为回归将在发布治理批次接入。
 
 ## 数据与隐私
 

@@ -23,8 +23,8 @@
   },
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/correctness.test.mjs",
-    "test:browser": "node --test tests/render-safety.test.mjs",
+    "test": "node --test tests/correctness.test.mjs tests/audit.test.mjs",
+    "test:browser": "node --test tests/render-safety.test.mjs tests/pagination.test.mjs",
     "check": "node scripts/check.mjs",
     "validate": "node scripts/validate-resume.mjs",
     "audit": "node scripts/audit-facts.mjs",
