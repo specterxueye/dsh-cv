@@ -1,6 +1,6 @@
 # dsh-cv · DeepSeek Harness 求职插件
 
-[![ci](https://github.com/specterxueye/dsh-cv/actions/workflows/ci.yml/badge.svg)](https://github.com/specterxueye/dsh-cv/actions/workflows/ci.yml)
+[![ci](https://github.com/specterxueye/dsh-cv/actions/workflows/ci.yml/badge.svg?branch=codex%2Fpublic-release-review-20261018)](https://github.com/specterxueye/dsh-cv/pull/1/checks)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 在 DSH 中整理真实经历、按招聘要求（JD）选择与改写内容，生成可导入 [MagicV](https://magicv.art) 的中文简历 JSON，并可继续准备项目讲稿和模拟面试。
@@ -11,16 +11,16 @@
 
 ## 安装与兼容
 
-当前适配基准：DSH `0.2.0-rc.1`、Node 22.3+ 或 24.x。保留宿主标准预设；插件只注册四个技能，不另搭 Agent 框架或接管模型。本机实测 Node 24，Node 22 与其他系统待 CI。
+当前适配基准：DSH `0.2.0-rc.1`、Node 22.3+ 或 24.x。保留宿主标准预设；插件只注册四个技能，不另搭 Agent 框架或接管模型。核心回归已通过 Node 22/24 × Windows/macOS/Linux；实际宿主集成已验 Node 24 的 Windows、Linux，其他组合仍待验收。
 
 ```powershell
-# 在本轮交付的候选代码目录执行
-cd "<候选代码目录>"
+git clone --branch codex/public-release-review-20261018 https://github.com/specterxueye/dsh-cv.git
+cd dsh-cv
 dsh plugin --profile web add .
 # Windows 辅助入口：pwsh -NoProfile -File ./scripts/install.ps1 -Profile web
 ```
 
-macOS/Linux 使用相同的 DSH 原生命令。桌面托管 profile 使用宿主插件管理入口。候选包也可用 `dsh plugin --profile web add "<候选tgz绝对路径>"` 安装。当前候选分支尚未推送，普通 git clone 默认取得的旧 main 不能代替候选目录；合入或预发布后再提供固定 ref。不要把历史 v1.0.0 Release 当作本轮修复版。
+macOS/Linux 使用相同的 DSH 原生命令。桌面托管 profile 使用宿主插件管理入口。候选包也可用 `dsh plugin --profile web add "<候选tgz绝对路径>"` 安装。上述分支在 [PR #1](https://github.com/specterxueye/dsh-cv/pull/1) 审阅中；普通 git clone 默认取得的旧 main 不能代替候选分支，正式固定 tag/tgz 尚未发布。不要把历史 v1.0.0 Release 当作本轮修复版。
 
 安装成功后重开相应 profile，验证 cv-intake、resume-writing、interview-pitch、mock-interview 均可加载。旧全局同名技能需先核验来源，避免串版本。完整步骤、移除和恢复见 [安装与使用](docs/安装与使用.md)。
 
