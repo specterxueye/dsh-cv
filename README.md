@@ -5,20 +5,22 @@
 
 在 DSH 中整理真实经历、按招聘要求（JD）选择与改写内容，生成可导入 [MagicV](https://magicv.art) 的中文简历 JSON，并可继续准备项目讲稿和模拟面试。
 
+当前代码为 `2.0.0-beta.1` 候选，尚未发布。历史标签保持原样，本轮分支未合入前，GitHub 默认分支和旧 Release 不代表此候选版。
+
 重点是事实整理、职责边界、改写确认与变更保护。数字来源命中不证明语义真实，也不承诺通过 ATS、提升录用率或自动完成 PDF 验收。
 
 ## 安装与兼容
 
-当前适配基准：DSH `0.2.0-rc.1`、Node 22/24 LTS。保留宿主标准预设；插件只注册四个技能，不另搭 Agent 框架或接管模型。
+当前适配基准：DSH `0.2.0-rc.1`、Node 22.3+ 或 24.x。保留宿主标准预设；插件只注册四个技能，不另搭 Agent 框架或接管模型。本机实测 Node 24，Node 22 与其他系统待 CI。
 
 ```powershell
-git clone https://github.com/specterxueye/dsh-cv.git
-cd dsh-cv
+# 在本轮交付的候选代码目录执行
+cd "<候选代码目录>"
 dsh plugin --profile web add .
 # Windows 辅助入口：pwsh -NoProfile -File ./scripts/install.ps1 -Profile web
 ```
 
-macOS/Linux 使用相同的 DSH 原生命令。桌面托管 profile 使用宿主插件管理入口。尚未发布新版 tgz 时使用当前目录；不要把历史 v1.0.0 Release 当作本轮修复版。
+macOS/Linux 使用相同的 DSH 原生命令。桌面托管 profile 使用宿主插件管理入口。候选包也可用 `dsh plugin --profile web add "<候选tgz绝对路径>"` 安装。当前候选分支尚未推送，普通 git clone 默认取得的旧 main 不能代替候选目录；合入或预发布后再提供固定 ref。不要把历史 v1.0.0 Release 当作本轮修复版。
 
 安装成功后重开相应 profile，验证 cv-intake、resume-writing、interview-pitch、mock-interview 均可加载。旧全局同名技能需先核验来源，避免串版本。完整步骤、移除和恢复见 [安装与使用](docs/安装与使用.md)。
 
@@ -65,30 +67,35 @@ node "<资源根>/scripts/diff-resume.mjs" --base "<原稿.json>" --new "<新稿
 
 蓝本合并使用 merge-blueprint.mjs，复用布局时会严格检查自定义栏目的语义匹配。输入模板见 profile 目录，不能直接把示例内容当作本人经历。
 
-prepare 始终生成未批准申请单，只有本次明确批准后才记录 approved 与 approvedAt。新 schemaVersion=2 绑定原稿、策略、事实文件和方案；变更后须重新审阅，旧批准记录不能自动升级。首次方案用 mode=create，没有原稿则不做 diff；摘要只是版本保护，不是用户身份签名。
+prepare 始终生成未批准申请单，只有本次明确批准后才记录 approved 与 approvedAt。新 schemaVersion=2 绑定方案及 prepare 时显式提供的输入；求职流程须提供本次事实与策略，修改模式另绑定原稿。check 仅报告实际核对的范围，显式提供未绑定文件会失败；已绑定文件变化后须重新审阅，旧记录不能自动升级。首次方案用 mode=create，没有原稿则不做 diff；摘要只是版本保护，不是用户身份签名。
 
 ## 验证与排版
+
+以下回归与仓库自检命令在源码开发目录运行。
 
 ```powershell
 npm test                 # 核心行为、来源命中、安装合同；全部使用合成资料
 npm run check            # 语法、资源、技能与文档自检
+npm run check:package    # npm 实际发布清单必须与逐文件允许清单一致
 npm run test:browser     # 离线安全与分页反例；需 playwright-core 和本机浏览器
 ```
 
-可选浏览器依赖使用锁文件安装 `npm ci`，或让 PLAYWRIGHT_DIR 指向已有安装。Chrome/Edge 路径由 --chrome、CHROME_PATH 或平台常见位置解析。
+源码开发目录使用锁文件安装 `npm ci --ignore-scripts`。从 tgz 安装的插件不含开发锁文件，渲染时让 PLAYWRIGHT_DIR 指向独立工具目录里已有的 playwright-core；本轮验证版本为 1.63.0。Chrome/Edge 路径由 --chrome、CHROME_PATH 或平台常见位置解析。
 
 - render-height.mjs：禁脚本、禁外部请求的本地近似量高，不能代替 MagicV。
 - render-measure3.cjs：在线导入所选 JSON，核对正文锚点，比较全部文本矩形与分页边界。0=ONE_PAGE、1=OVERFLOW、2=UNKNOWN/失败；最终另验 PDF。当前不自动验收多页 policy。
 - render-blocks.cjs：共享导入核对后测量区块，仅供定位排版问题。
 - 数字检查：0=扫描 token 均命中、1=存在未命中、2=输入或来源错误。对象、职责、单位、时间关系仍需人工核对。
 
-离线夹具通过不意味着当前外部编辑器界面已验收。验收进度与待办见 [公开发布优化计划](docs/公开发布优化计划.md)。
+2026-10-19 已验一份合成稿的实际导入及 1 页 A4 PDF。当前网页缺分页标记，在线测量返回 UNKNOWN；其他模板、多页与真实用户流程仍待验收。进度与待办见 [公开发布优化计划](docs/公开发布优化计划.md)。
 
 ## 隐私与边界
 
 个人文件默认保存在用户选定的本地目录；仓库忽略 users/test/output 等目录，发布包另用资源允许清单防止误带资料。本地保存不等于处理过程离线：DSH 会把你发送的内容交给所配置模型；MagicV 是可选外部处理环节，在线测量也会导入选定文件。不承诺第三方保留政策或端到端离线。
 
 通用规则在个人任务中只读。项目仍需真实 DSH 会话、外部导入/PDF 和陌生用户反馈来验证公开使用价值，不能以测试数量代替这些结果。
+
+维护、候选包、CI 与待批准的 GitHub 设置见 [发布与维护](docs/发布与维护.md)；参与方式见 [CONTRIBUTING](CONTRIBUTING.md)，安全报告见 [SECURITY](SECURITY.md)。
 
 ## 许可与来源
 

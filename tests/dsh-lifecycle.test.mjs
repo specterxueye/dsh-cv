@@ -1,9 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cpSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { createRequire } from 'node:module';
+import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { sandbox, repoRoot } from './helpers.mjs';
 
@@ -32,42 +30,21 @@ test('native DSH add, resource discovery, update and remove keep external data i
   run('--profile', 'dsh-cv-test', '--from-default-profile', 'web', '--dump-config');
   run('plugin', '--profile', 'dsh-cv-test', 'add', source, ...pnpmOptions);
   const profile = join(home, 'profiles', 'dsh-cv-test'), installed = join(profile, 'node_modules', 'dsh-cv');
-  assert.ok(existsSync(join(installed, 'cordis.patch.yml')));
-  const config = run('--profile', 'dsh-cv-test', '--dump-config');
-  assert.ok(config.includes('dsh-cv-skills'), `插件未进入组合，profile: ${readFileSync(join(profile, 'package.json'), 'utf8')}`);
-  assert.match(config, /includeDefaultRoots: false/);
-
-  // Exercise the installed host's actual skill registry/provider, without a
-  // model, account, server or real user's roots.
-  const hostRequire = createRequire(cli);
-  const loadHost = name => import(pathToFileURL(hostRequire.resolve(name)).href);
-  const { Context } = await loadHost('@deepseek-ai/cordis');
-  const registry = await loadHost('@deepseek-ai/dsh-skill');
-  const provider = await loadHost('@deepseek-ai/dsh-skill-filesystem');
-  const appBoot = await loadHost('@deepseek-ai/dsh-app-boot');
-  const loader = await loadHost('@deepseek-ai/cordis-plugin-loader');
-  const row = appBoot.loadOverlayPatches('dsh-cv-test', join(installed, 'cordis.patch.yml'))[0].insert[0];
-  const configValues = loader.interpolate({ baseUrl: pathToFileURL(join(profile, 'cordis.yml')).href }, row.config);
-  assert.equal(realpathSync(configValues.customSkillDirs[0]), realpathSync(join(installed, 'preset', 'skills')));
-  const ctx = new Context();
-  try {
-    const registryFiber = ctx.plugin(registry.default);
-    const providerFiber = ctx.plugin(provider, { ...configValues, dshHome: home, agentsHome: join(s.dir, 'empty-agents'), watch: false });
-    await registryFiber.await();
-    await providerFiber.await();
-    const catalog = await ctx.skills.list({ cwd: s.dir });
-    const names = catalog.map ? catalog.map(x => x.name) : catalog.skills.map(x => x.name);
-    assert.deepEqual(names.sort(), ['cv-intake', 'interview-pitch', 'mock-interview', 'resume-writing']);
-    const skill = await ctx.skills.get('resume-writing', { cwd: s.dir });
-    assert.equal(skill.provider, 'dsh-cv');
-    assert.equal(realpathSync(join(skill.resourceBase.path, '../../..')), realpathSync(installed));
-    assert.ok(existsSync(join(skill.resourceBase.path, '../../../data/rules/00-总则.md')));
-  } finally { await ctx.fiber.dispose(); }
+  const verifyInstalled = () => {
+    assert.ok(existsSync(join(installed, 'cordis.patch.yml')));
+    const config = run('--profile', 'dsh-cv-test', '--dump-config');
+    assert.ok(config.includes('dsh-cv-skills'), `插件未进入组合，profile: ${readFileSync(join(profile, 'package.json'), 'utf8')}`);
+    assert.match(config, /includeDefaultRoots: false/);
+    const check = spawnSync(process.execPath, [join(repoRoot, 'tests/dsh-provider-check.mjs'), cli, installed, profile, home, s.dir], { cwd: s.dir, env, encoding: 'utf8', timeout: 45000 });
+    assert.equal(check.status, 0, check.stdout + check.stderr + (check.error?.message || ''));
+    assert.match(check.stdout, /SKILLS_OK/);
+  };
+  await verifyInstalled();
 
   const paths = spawnSync(process.execPath, [join(installed, 'scripts/paths.mjs'), '--data-dir', data], { cwd: s.dir, env, encoding: 'utf8' });
   assert.equal(paths.status, 0, paths.stderr);
   assert.equal(JSON.parse(paths.stdout).dataDir, data);
-  const updated = { ...pkg, version: '0.5.1', description: `${pkg.description} (synthetic update)` };
+  const updated = { ...pkg, version: `${pkg.version.split('-')[0]}-rc.integration.1`, description: `${pkg.description} (synthetic update)` };
   const updateSource = join(s.dir, "更新 O'Brien 包");
   cpSync(source, updateSource, { recursive: true });
   writeFileSync(join(updateSource, 'package.json'), JSON.stringify(updated));
@@ -81,6 +58,21 @@ test('native DSH add, resource discovery, update and remove keep external data i
   run('plugin', '--profile', 'dsh-cv-test', 'add', source, ...pnpmOptions);
   assert.equal(JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8')).version, pkg.version);
   run('plugin', '--profile', 'dsh-cv-test', 'remove', 'dsh-cv', ...pnpmOptions);
+  // Install the actual npm artifact, not only a linked checkout. No personal
+  // directories are copied; npm's exact package.files allowlist is enforced by
+  // the separate packaging regression.
+  assert.ok(process.env.npm_execpath && existsSync(process.env.npm_execpath), '使用 npm run test:dsh 运行归档安装测试');
+  const packedDir = join(s.dir, 'archive');
+  mkdirSync(packedDir);
+  const packed = spawnSync(process.execPath, [process.env.npm_execpath, 'pack', repoRoot, '--pack-destination', packedDir, '--ignore-scripts', '--json'], { cwd: s.dir, env, encoding: 'utf8', timeout: 60000 });
+  assert.equal(packed.status, 0, packed.stdout + packed.stderr + (packed.error?.message || ''));
+  const packedReport = JSON.parse(packed.stdout);
+  const artifact = (Array.isArray(packedReport) ? packedReport : Object.values(packedReport))[0];
+  assert.ok(artifact?.filename && !artifact.filename.includes('/') && !artifact.filename.includes('\\'));
+  run('plugin', '--profile', 'dsh-cv-test', 'add', join(packedDir, artifact.filename), ...pnpmOptions);
+  assert.equal(JSON.parse(readFileSync(join(installed, 'package.json'), 'utf8')).version, pkg.version);
+  await verifyInstalled();
+  run('plugin', '--profile', 'dsh-cv-test', 'remove', 'dsh-cv', ...pnpmOptions);
   assert.equal(readFileSync(join(data, 'sentinel.txt'), 'utf8'), 'synthetic private data');
-  console.log('NATIVE lifecycle: add / evaluated bundle paths / 4 actual skills / unrelated cwd / new-source update / remove / restore / data intact');
+  console.log('NATIVE lifecycle: add / evaluated bundle paths / 4 actual skills / unrelated cwd / new-source update / remove / restore / packed tgz add + discovery + remove / data intact');
 });

@@ -13,7 +13,7 @@
  *
  * 退出码：0 = 全绿；1 = 有失败项（可直接串进 CI）
  */
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -27,22 +27,17 @@ const ok = (msg) => { console.log(`  \u2705 ${msg}`); passed += 1; };
 const bad = (msg) => { console.log(`  \u274c ${msg}`); failed += 1; };
 const section = (t) => console.log(`\n== ${t} ==`);
 
-/** 手写递归（不用 readdirSync recursive，保持 Node 16 兼容） */
-function walk(dir, filter, out = []) {
-  if (!existsSync(dir)) return out;
-  for (const name of readdirSync(dir)) {
-    if (name === 'node_modules' || name === '.git') continue;
-    const full = join(dir, name);
-    const st = statSync(full);
-    if (st.isDirectory()) walk(full, filter, out);
-    else if (filter(full)) out.push(full);
-  }
-  return out;
-}
+// Only inspect tracked public files and explicitly packaged resources. Ignored
+// personal scripts and accidental files in resource directories are not inputs.
+const pkg = JSON.parse(readFileSync(p('package.json'), 'utf8'));
+const tracked = spawnSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' });
+if (tracked.status !== 0) bad('读取 Git 公共文件清单失败（仓库自检需要 Git checkout）');
+const publicFiles = [...new Set([...(tracked.stdout || '').split('\0').filter(Boolean), ...pkg.files])];
+const selected = (prefix, extension) => publicFiles.filter(f => f.startsWith(prefix) && extension.test(f) && existsSync(p(f))).map(f => p(f));
 
 // ── 1. 脚本语法 ────────────────────────────────────────────────
 section('脚本语法（node --check）');
-const scripts = walk(p('scripts'), (f) => /\.(mjs|cjs|js)$/.test(f));
+const scripts = [...selected('scripts/', /\.(mjs|cjs|js)$/), ...selected('tests/', /\.(mjs|cjs|js)$/)];
 for (const f of scripts) {
   const r = spawnSync(process.execPath, ['--check', f], { encoding: 'utf8' });
   const rel = relative(root, f);
@@ -55,7 +50,7 @@ section('JSON 可解析');
 const jsonFiles = [
   p('package.json'),
   p('preset', 'manifest.json'),
-  ...walk(p('profile'), (f) => f.endsWith('.json')),
+  ...selected('profile/', /\.json$/),
 ];
 for (const f of jsonFiles) {
   const rel = relative(root, f);
@@ -70,9 +65,7 @@ for (const f of jsonFiles) {
 // ── 3. 技能完整性 ─────────────────────────────────────────────
 section('技能完整性');
 const skillsRoot = p('preset', 'skills');
-const skillDirs = existsSync(skillsRoot)
-  ? readdirSync(skillsRoot).filter((n) => statSync(join(skillsRoot, n)).isDirectory())
-  : [];
+const skillDirs = [...new Set(publicFiles.map(f => /^preset\/skills\/([^/]+)\/SKILL\.md$/.exec(f)?.[1]).filter(Boolean))];
 if (skillDirs.length === 0) bad('preset/skills 下没有技能目录');
 const skillNames = [];
 for (const dir of skillDirs) {
@@ -92,7 +85,7 @@ for (const dir of skillDirs) {
 
 // ── 4. 零硬编码路径 ───────────────────────────────────────────
 section('脚本内不得出现硬编码本机路径');
-const codeFiles = walk(p('scripts'), (f) => /\.(mjs|cjs|js|ps1)$/.test(f));
+const codeFiles = selected('scripts/', /\.(mjs|cjs|js|ps1)$/);
 const personalPath = /\/Users\/[A-Za-z0-9._-]+\/|\/home\/[A-Za-z0-9._-]+\//;
 // 拼出来，避免本文件自身的规则行被自己命中
 const PF_NEEDLE = ['Program', 'Files'].join(' ');
@@ -118,8 +111,9 @@ if (pathViolations === 0) ok(`${codeFiles.length} 个脚本/脚本文件均无�
 section('文档相对链接可解析');
 const docFiles = [
   p('README.md'), p('CHANGELOG.md'), p('THIRD-PARTY-NOTICES.md'),
-  ...walk(p('docs'), (f) => f.endsWith('.md')),
-  ...walk(p('preset'), (f) => f.endsWith('.md')),
+  ...['CONTRIBUTING.md', 'SECURITY.md'].filter(f => existsSync(p(f))).map(f => p(f)),
+  ...selected('docs/', /\.md$/),
+  ...selected('preset/', /\.md$/),
 ];
 let linkTotal = 0;
 let linkBad = 0;
@@ -148,6 +142,13 @@ for (const dir of skillNames) {
   if (!(manifest.files || []).includes(`skills/${dir}/SKILL.md`)) { bad(`manifest.files 缺少 skills/${dir}/SKILL.md`); manBad += 1; }
 }
 if (manBad === 0) ok(`manifest.files ${(manifest.files || []).length} 项全部存在，${skillNames.length} 个技能均已登记（version ${manifest.version}）`);
+
+section('版本与依赖合同');
+const lock = JSON.parse(readFileSync(p('package-lock.json'), 'utf8'));
+if (lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version || manifest.version !== pkg.version) bad('package / lock / manifest 版本不一致');
+else ok(`版本一致：${pkg.version}`);
+if (JSON.stringify(lock.packages?.['']?.devDependencies) !== JSON.stringify(pkg.devDependencies) || JSON.stringify(lock.packages?.['']?.engines) !== JSON.stringify(pkg.engines)) bad('锁文件根依赖或 engines 与 package 不一致');
+else ok('锁文件依赖与兼容声明一致');
 
 // ── 汇总 ──────────────────────────────────────────────────────
 console.log(`\n== 自检结果：${passed} 通过 / ${failed} 失败 ==`);

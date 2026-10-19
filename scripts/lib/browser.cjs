@@ -99,9 +99,9 @@ function requireChromium(who = 'script') {
   if (!pw || !pw.chromium) {
     console.error(
       `[${who}] 找不到 playwright-core（真实渲染验收才需要）。任选其一：\n` +
-      `  1) 在本仓库安装：npm i -D playwright-core\n` +
-      `  2) 或指向已装目录：$env:PLAYWRIGHT_DIR="<含 node_modules 的目录>"（Windows）\n` +
-      `                    export PLAYWRIGHT_DIR="<含 node_modules 的目录>"（macOS/Linux）`
+      `  1) 在独立工具目录安装：npm install --ignore-scripts --no-save playwright-core@1.63.0\n` +
+      `  2) 指向该目录：$env:PLAYWRIGHT_DIR="<工具目录>"（Windows）\n` +
+      `                 export PLAYWRIGHT_DIR="<工具目录>"（macOS/Linux）`
     );
     process.exit(2);
   }

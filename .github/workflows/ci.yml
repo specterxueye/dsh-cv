@@ -2,32 +2,94 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'codex/**']
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  check:
-    name: 仓库自检（${{ matrix.os }} / node ${{ matrix.node }}）
+  core:
+    name: core (${{ matrix.os }} / node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node: ['16', '20']
+        node: ['22', '24']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ matrix.node }}
-      - name: node scripts/check.mjs
-        run: node scripts/check.mjs
-
-  install-dryrun:
-    name: install.ps1 -DryRun（Windows）
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: 预演安装（不写入任何东西）
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run check
+      - run: npm run check:package
+      - name: Windows installer dry run
+        if: runner.os == 'Windows'
         shell: pwsh
-        run: ./scripts/install.ps1 -DryRun
+        run: |
+          ./scripts/install.ps1 -DryRun
+          foreach ($script in 'scripts/install.ps1', 'scripts/sync-preset.ps1') {
+            $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD $script), [ref]$null, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count) { throw ($parseErrors | Out-String) }
+          }
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts
+      - name: Resolve hosted Chrome
+        run: echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+      - run: npm run test:browser
+
+  native-dsh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts
+      - name: Install pinned host in temporary directory
+        run: |
+          npm install --prefix "$RUNNER_TEMP/dsh-host" --no-save --ignore-scripts @deepseek-ai/dsh@0.2.0-rc.1 pnpm@12.8.1
+          echo "$RUNNER_TEMP/dsh-host/node_modules/.bin" >> "$GITHUB_PATH"
+          echo "DSH_TEST_CLI=$RUNNER_TEMP/dsh-host/node_modules/@deepseek-ai/dsh/lib/bin.js" >> "$GITHUB_ENV"
+      - run: npm run test:dsh
+
+  quality-gate:
+    name: quality-gate
+    if: always()
+    needs: [core, browser, native-dsh]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      CORE_RESULT: ${{ needs.core.result }}
+      BROWSER_RESULT: ${{ needs.browser.result }}
+      DSH_RESULT: ${{ needs.native-dsh.result }}
+    steps:
+      - run: test "$CORE_RESULT" = success && test "$BROWSER_RESULT" = success && test "$DSH_RESULT" = success

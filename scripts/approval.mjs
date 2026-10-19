@@ -19,10 +19,11 @@ try {
     if (!Array.isArray(request.touchedFields) || request.touchedFields.some(path => typeof path !== 'string' || !path.trim())) throw new Error('touchedFields 必须为字段路径数组');
     request.planSha256 = planDigest(request);
     writeJsonOutput(options.out, request, { protectedPaths: [options.plan, options.base, options.strategy, options.profile].filter(Boolean) });
-    console.log(`已准备未批准申请单：${options.out}；只有用户明确确认后才记录 approved 与 approvedAt，不能因生成申请单自动批准。`);
+    console.log(`已准备未批准申请单：${options.out}`);
   } else {
     if (!options.request) throw new Error('check 需要 --request');
-    validateApproval(json(options.request), options);
-    console.log('本次批准记录及输入版本绑定通过；这不证明用户身份、内容真实性或稿件排版。');
+    const record = validateApproval(json(options.request), options);
+    const checked = ['方案', ...[['baseSha256', '原稿'], ['strategySha256', '策略'], ['profileSha256', '事实基线']].filter(([key]) => record[key] != null).map(([, label]) => label)];
+    console.log(`批准记录通过；已核对：${checked.join('、')}`);
   }
 } catch (error) { console.error(`批准记录检查失败：${error.message}`); process.exitCode = command === 'check' ? 1 : 2; }

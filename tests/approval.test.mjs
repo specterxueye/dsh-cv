@@ -54,3 +54,21 @@ test('first resume creation completes approval, generation, structure and source
     assert.equal(result.status, 0, `${script}: ${result.stdout}${result.stderr}`);
   }
 });
+
+for (const kind of ['profile', 'strategy']) {
+  test(`explicit ${kind} cannot be silently ignored by a plan that did not bind it`, t => {
+    const s = sandbox(t), plan = s.json('plan.json', { mode: 'create', touchedFields: [] }), request = plan.replace('plan.json', 'request.json');
+    assert.equal(s.run('approval.mjs', ['prepare', '--plan', plan, '--out', request]).status, 0);
+    const record = JSON.parse(readFileSync(request, 'utf8'));
+    record.approved = true; record.approvedAt = '2026-10-19T00:00:00Z';
+    writeFileSync(request, JSON.stringify(record));
+    const limited = s.run('approval.mjs', ['check', '--request', request]);
+    assert.equal(limited.status, 0, limited.stdout + limited.stderr);
+    const input = s.json(`${kind}.json`, { synthetic: true });
+    for (const path of [input, `${input}.missing`]) {
+      const result = s.run('approval.mjs', ['check', '--request', request, `--${kind}`, path]);
+      assert.equal(result.status, 1, result.stdout + result.stderr);
+      assert.match(result.stderr, /未绑定/);
+    }
+  });
+}
