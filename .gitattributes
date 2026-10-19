@@ -25,5 +25,5 @@ preset/**/SKILL.md linguist-documentation
 *.jpeg binary
 *.pdf  binary
 
-# 发布产物不参与 diff 统计
-package-lock.json -diff linguist-generated
+# 锁文件保留文本 diff，依赖更新必须可审查
+package-lock.json text linguist-generated

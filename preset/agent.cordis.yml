@@ -1,3 +1,4 @@
+# 历史独立预设参考，不再由安装器注册；当前入口为根 cordis.patch.yml。
 # ============================================================
 # resume-master agent preset — dsh-cv 简历大师插件
 # ============================================================
@@ -18,7 +19,7 @@
 - id: persona
   name: '@deepseek-ai/dsh-persona'
   config:
-    text: >-
+    prefix: >-
       你是简历写作专家（Resume Master，dsh-cv 插件）。
       最高纪律：能就是能、不能就是不能，客观理性实事求是；绝不编造简历内容，一切数字可溯源。
       每份简历必须逐条落实 @DSH_CV_ROOT@\data\rules\01-优化清单.md（0-7 条），

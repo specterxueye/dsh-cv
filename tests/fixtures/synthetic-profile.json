@@ -1,0 +1,9 @@
+{
+  "basic": {"name":"Synthetic Candidate","title":"Software Developer","email":"candidate@example.invalid","phone":"00000000000","location":"Fixture City","customFields":[]},
+  "education": [{"school":"Synthetic University","major":"Computer Science","degree":"Bachelor","startDate":"2020/09","endDate":"2024/06","bullets":["Completed a fictional course project."]}],
+  "experience": [{"company":"Fixture Company","position":"Developer","date":"2023/01 - 2023/06","bullets":["Implemented a synthetic reporting task."]}],
+  "projects": [{"name":"Synthetic Project","role":"Contributor","date":"2023/01","headline":"JavaScript and Node.js","bullets":["Implemented a fictional input validation task."]}],
+  "campus": [{"name":"Synthetic Club","position":"Member","date":"2022/01","bullets":["Organized a fictional meeting."]}],
+  "skills": ["Implemented input validation in the synthetic project."],
+  "selfEvaluation": ["Can explain the design of the synthetic project."]
+}

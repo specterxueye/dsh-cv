@@ -46,6 +46,47 @@ try {
   process.exit(1);
 }
 
+// 先验证形态，避免错误类型被后续条件分支跳过或引发 TypeError。
+const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const shapeErrors = [];
+const shapeError = message => shapeErrors.push(`[ERROR] ${message}`);
+if (!record(json)) shapeError('简历顶层必须为对象');
+else {
+  for (const key of ['basic', 'globalSettings', 'customData']) {
+    if (!record(json[key])) shapeError(`${key} 必须为对象`);
+  }
+  for (const key of ['education', 'experience', 'projects', 'campus', 'menuSections', 'certificates']) {
+    if (!Array.isArray(json[key])) shapeError(`${key} 必须为数组`);
+    else if (key !== 'certificates') json[key].forEach((item, i) => {
+      if (!record(item)) shapeError(`${key}[${i}] 必须为对象`);
+      else if ('visible' in item && typeof item.visible !== 'boolean') shapeError(`${key}[${i}].visible 必须为布尔值`);
+    });
+  }
+  for (const key of ['title', 'skillContent', 'selfEvaluationContent', 'activeSection', 'id', 'createdAt', 'updatedAt', 'templateId']) {
+    if (typeof json[key] !== 'string') shapeError(`${key} 必须为字符串`);
+  }
+  if (record(json.basic)) {
+    for (const key of ['name', 'title', 'photo']) if (typeof json.basic[key] !== 'string') shapeError(`basic.${key} 必须为字符串`);
+    for (const key of ['fieldOrder', 'customFields']) {
+      if (!Array.isArray(json.basic[key])) shapeError(`basic.${key} 必须为数组`);
+      else json.basic[key].forEach((item, i) => { if (!record(item)) shapeError(`basic.${key}[${i}] 必须为对象`); });
+    }
+  }
+  if (record(json.globalSettings)) {
+    for (const key of ['baseFontSize', 'pagePadding', 'paragraphSpacing', 'lineHeight', 'sectionSpacing', 'headerSize', 'subheaderSize']) {
+      if (!Number.isFinite(json.globalSettings[key])) shapeError(`globalSettings.${key} 必须为有限数字`);
+    }
+  }
+  if (record(json.customData)) for (const [key, items] of Object.entries(json.customData)) {
+    if (!Array.isArray(items)) shapeError(`customData.${key} 必须为数组`);
+    else items.forEach((item, i) => { if (!record(item)) shapeError(`customData.${key}[${i}] 必须为对象`); });
+  }
+}
+if (shapeErrors.length) {
+  console.error(shapeErrors.join('\n'));
+  process.exit(1);
+}
+
 // ---------------------------------------------------------- 1. 顶层必填
 const TOP_KEYS = ['title', 'basic', 'education', 'skillContent', 'selfEvaluationContent',
   'experience', 'campus', 'draggingProjectId', 'projects', 'menuSections', 'certificates',
@@ -291,7 +332,7 @@ if (Array.isArray(json.campus) && json.campus.length > 0) {
 
 // ---------------------------------------------------------- 6. globalSettings / templateId / dragging
 if (json.globalSettings) {
-  if (json.globalSettings.autoOnePage !== true) error('globalSettings.autoOnePage 必须为 true（一页装下硬性要求）');
+  if (typeof json.globalSettings.autoOnePage !== 'boolean') error('globalSettings.autoOnePage 必须为布尔值（不能据此证明页数）');
   if (!json.globalSettings.themeColor) warn('globalSettings.themeColor 为空');
   if (typeof json.globalSettings.baseFontSize !== 'number') warn('globalSettings.baseFontSize 应为数字');
 }

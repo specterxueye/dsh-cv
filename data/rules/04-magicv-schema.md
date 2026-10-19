@@ -1,3 +1,4 @@
+<!-- dsh-cv:reference -->
 # magicv.art 简历 JSON 金标准 Schema（v1 · 以真实成品校准确认）
 
 > 来源：线上成品格式校准（已导入 magicv.art 渲染成功、一页验收通过；schema 为通用格式标准，本文示例值均为**虚构占位**，与任何真实用户无关）
@@ -165,7 +166,7 @@
 }
 ```
 
-## 九、globalSettings（★ 一页装下在此）
+## 九、globalSettings（格式兼容，不证明页数）
 
 ```jsonc
 {
@@ -179,7 +180,7 @@
   "useIconMode": false,
   "themeColor": "#10b981",
   "centerSubtitle": true,
-  "autoOnePage": true,            // ★ 生成时恒 true；但 2026-09-21 实测它不改变预览渲染，不能当一页判据（判据见 01-优化清单 §9）
+  "autoOnePage": true,            // 布尔值；可按策略为 false，不能证明页数，policy 与实际 PDF 单独验收
   "flexibleHeaderLayout": true,
   "fontFamily": "\"Alibaba PuHuiTi\", sans-serif"
 }
@@ -207,7 +208,7 @@
 3. `customData` 每个 key 都有对应 menuSection（不许孤儿键）
 4. 所有 HTML 字段非空、符合 `<ul><li><p>` 结构、无裸文本
 5. `id` 全为 UUID（可用 crypto.randomUUID()）
-6. `templateId: "classic"`、`autoOnePage: true`、`draggingProjectId: ""`
+6. `templateId: "classic"`、布尔 `autoOnePage`、`draggingProjectId: ""`
 7. `certificates: []`（证书并入技能优势）
 8. 顶层 `campus` 同步写（与 customData 校园菜单内容一致）
 9. `fieldOrder` 完整覆盖 basic 展示字段

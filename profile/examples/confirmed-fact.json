@@ -1,0 +1,6 @@
+{
+  "_meta": { "schemaVersion": 1, "kind": "example", "note": "完全合成，仅示范事实结构；生成器和来源检查会拒绝它作为用户履历。" },
+  "basic": { "name": "合成示例人物", "title": "示例岗位" },
+  "projects": [{ "name": "合成示例项目", "role": "测试协作者", "bullets": [{ "value": "协助执行测试并整理问题清单", "status": "confirmed", "source": { "kind": "user-confirmation", "reference": "格式示意，非真人确认" }, "evidenceStatus": "unverified" }] }],
+  "pendingFacts": [{ "value": "某个尚未确认的指标", "status": "pending" }]
+}

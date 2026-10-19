@@ -8,7 +8,8 @@
  * 为什么：蓝本=已在 magicv.art 真实渲染验收的成品（版式/参数/照片/菜单结构已验证）；
  * 内容层用生成器（结构/HTML/加粗/双写保证），避免从零生成时版式参数反复试错。
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { writeJsonOutput } from './lib/output.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : undefined; };
@@ -25,7 +26,20 @@ const blue = JSON.parse(readFileSync(bluePath, 'utf8'));
 const gen = JSON.parse(readFileSync(contentPath, 'utf8'));
 const newTitle = arg('--title') || gen.title || blue.title;
 
+// custom-N 是顺序编号；旧稿没有语义 key 时，要求标题和启用状态完全兼容，禁止猜配。
+const customMenus = data => (data.menuSections || []).filter(m => /^custom-\d+$/.test(m.id));
+const oldMenus = customMenus(blue), newMenus = customMenus(gen);
+const compatible = oldMenus.length === newMenus.length && oldMenus.every(old => {
+  const next = newMenus.find(m => m.id === old.id);
+  return next && old.title === next.title && old.enabled === next.enabled && (!old.key || !next.key || old.key === next.key);
+});
+if (!compatible || new Set(oldMenus.map(m => m.title)).size !== oldMenus.length) {
+  console.error('自定义区块语义不一致或标题重复，未合并；请先显式对齐蓝本与新稿的菜单身份');
+  process.exit(1);
+}
+
 const out = {
+  ...blue,
   // ---- 壳（来自已验证蓝本）----
   menuSections: blue.menuSections,
   globalSettings: blue.globalSettings,
@@ -38,7 +52,7 @@ const out = {
   certificates: [],
   // ---- 内容（来自生成器）----
   title: newTitle,
-  basic: { ...gen.basic, fieldOrder: blue.basic?.fieldOrder || gen.basic?.fieldOrder, photo: blue.basic?.photo || gen.basic?.photo, layout: blue.basic?.layout || gen.basic?.layout },
+  basic: { ...gen.basic, fieldOrder: blue.basic?.fieldOrder || gen.basic?.fieldOrder, photo: blue.basic?.photo ?? gen.basic?.photo, layout: blue.basic?.layout || gen.basic?.layout },
   education: gen.education || [],
   experience: gen.experience || [],
   projects: gen.projects || [],
@@ -58,7 +72,8 @@ for (const m of (out.menuSections || [])) {
   }
 }
 
-writeFileSync(outPath, JSON.stringify(out, null, 2), 'utf8');
+try { writeJsonOutput(outPath, out, { force: argv.includes('--force'), protectedPaths: [bluePath, contentPath] }); }
+catch (error) { console.error(`[合并失败] ${error.message}`); process.exit(1); }
 console.log(`[合并完成] 蓝本壳 + 生成器内容 → ${outPath}`);
 console.log(`  菜单: ${(out.menuSections || []).map(m => m.id).join(' → ')}`);
 console.log(`  区块: education ${out.education.length} / experience ${out.experience.length} / projects ${out.projects.length} / campus ${out.campus.length}`);
