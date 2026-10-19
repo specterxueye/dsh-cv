@@ -51,15 +51,21 @@ dsh-cv/                 用户选定的数据目录/
 
 核心脚本只依赖 Node 标准库。所有输入与输出路径都可以是绝对路径，从无关目录调用亦可。
 
+空模板保存在 profile，复制到个人目录、填入本人确认的内容后将 `_meta.kind` 改为 `user-profile` 或 `user-strategy`。模板与合成示例会被拒绝生成和充当来源。新事实可用 `value/status/source`，材料核验强度单独记录；旧 plain 格式可兼容，不能据此宣称已证明真实。
+
 ```powershell
 node "<资源根>/scripts/paths.mjs" --data-dir "<个人目录>"
 node "<资源根>/scripts/build-resume.mjs" --profile "<个人目录>/事实基线.json" --strategy "<个人目录>/策略.json"
 node "<资源根>/scripts/validate-resume.mjs" "<成品.json>" --strict
 node "<资源根>/scripts/audit-facts.mjs" "<成品.json或讲稿.md>" --profile "<事实基线.json>" --corpus "<补充来源.md>"
-node "<资源根>/scripts/diff-resume.mjs" --base "<原稿.json>" --new "<新稿.json>" --expect "<批准记录.json>"
+node "<资源根>/scripts/approval.mjs" prepare --plan "<方案.json>" --out "<申请单.json>" --profile "<事实基线.json>" --strategy "<策略.json>" [--base "<原稿.json>"]
+node "<资源根>/scripts/approval.mjs" check --request "<申请单.json>" --profile "<事实基线.json>" --strategy "<策略.json>" [--base "<原稿.json>"]
+node "<资源根>/scripts/diff-resume.mjs" --base "<原稿.json>" --new "<新稿.json>" --expect "<申请单.json>" [--profile "<事实基线.json>"] [--strategy "<策略.json>"]
 ```
 
 蓝本合并使用 merge-blueprint.mjs，复用布局时会严格检查自定义栏目的语义匹配。输入模板见 profile 目录，不能直接把示例内容当作本人经历。
+
+prepare 始终生成未批准申请单，只有本次明确批准后才记录 approved 与 approvedAt。新 schemaVersion=2 绑定原稿、策略、事实文件和方案；变更后须重新审阅，旧批准记录不能自动升级。首次方案用 mode=create，没有原稿则不做 diff；摘要只是版本保护，不是用户身份签名。
 
 ## 验证与排版
 

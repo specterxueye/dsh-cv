@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, linkSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { sandbox, syntheticProfile } from './helpers.mjs';
+import { sandbox, syntheticProfile, approvedRequest } from './helpers.mjs';
 import renderContract from '../scripts/lib/online-render.cjs';
 
 test('synthetic generated resume passes strict validation', (t) => {
@@ -17,6 +17,7 @@ test('generated resume is accepted by the online import contract including custo
   assert.equal(options.shot, 'synthetic-shot');
   assert.ok(options.anchors.includes(data.basic.name.replace(/\s+/g, '')));
   assert.ok(options.anchors.includes(data.projects[0].name.replace(/\s+/g, '')));
+  for (const field of data.basic.customFields) assert.ok(options.anchors.includes(field.value.replace(/\s+/g, '')));
 });
 
 for (const [field, value] of Object.entries({ basic: null, globalSettings: null, education: {}, experience: null, projects: 'invalid', campus: 42 })) {
@@ -47,20 +48,23 @@ for (const [label, before, after] of [
 ]) {
   test(`authorization rejects unapproved ${label} change`, (t) => {
     const s = sandbox(t);
-    const result = s.run('diff-resume.mjs', ['--base', s.json('base.json', before), '--new', s.json('next.json', after), '--expect', s.json('approval.json', { approved: true, touchedFields: [] })]);
+    const base = s.json('base.json', before);
+    const result = s.run('diff-resume.mjs', ['--base', base, '--new', s.json('next.json', after), '--expect', s.json('approval.json', approvedRequest(base))]);
     assert.equal(result.status, 1, result.stdout + result.stderr);
   });
 }
 
 test('authorization accepts an approved child field and ignores regenerated metadata', (t) => {
   const s = sandbox(t);
-  const result = s.run('diff-resume.mjs', ['--base', s.json('base.json', { id: 'old', projects: [{ description: 'before' }] }), '--new', s.json('next.json', { id: 'new', projects: [{ description: 'after' }] }), '--expect', s.json('approval.json', { approved: true, touchedFields: ['projects[0].description'] })]);
+  const base = s.json('base.json', { id: 'old', projects: [{ description: 'before' }] });
+  const result = s.run('diff-resume.mjs', ['--base', base, '--new', s.json('next.json', { id: 'new', projects: [{ description: 'after' }] }), '--expect', s.json('approval.json', approvedRequest(base, ['projects[0].description']))]);
   assert.equal(result.status, 0, result.stdout + result.stderr);
 });
 
 test('authorization keeps literal dotted keys separate from nested field paths', (t) => {
   const s = sandbox(t);
-  const result = s.run('diff-resume.mjs', ['--base', s.json('base.json', { basic: { name: 'before' }, 'basic.name': 'decoy' }), '--new', s.json('next.json', { basic: { name: 'after' }, 'basic.name': 'decoy' }), '--expect', s.json('approval.json', { approved: true, touchedFields: [] })]);
+  const base = s.json('base.json', { basic: { name: 'before' }, 'basic.name': 'decoy' });
+  const result = s.run('diff-resume.mjs', ['--base', base, '--new', s.json('next.json', { basic: { name: 'after' }, 'basic.name': 'decoy' }), '--expect', s.json('approval.json', approvedRequest(base))]);
   assert.equal(result.status, 1, result.stdout + result.stderr);
 });
 

@@ -6,19 +6,19 @@
  *   --profile  <profile.json>   人物画像（事实原料，结构化事实）
  *   --strategy <strategy.json>  JD 分析 + 写作策略（由 LLM 侧产出：关键词/排序/
  *                               覆盖内容/自定义区块/全局设置）
- *   --out      <path>           输出路径；缺省 output/姓名-岗位-学校.json
+ *   --out      <path>           输出路径；缺省为事实文件同级 output/姓名-岗位-学校.json
  *   --quiet                     只输出错误与警告
  *
  * 输出: 与 data/rules/04-magicv-schema.md 金标准一致的 magicv.art 线上格式 JSON
  *
- * 无第三方依赖；需要 Node.js >= 16（node:crypto randomUUID）。
+ * 无第三方依赖；支持 Node.js 22/24 LTS。
  *
  * 设计要点（对齐金标准 + 两份实测渲染成功成品）:
  *  - menuSections[].id 与 customData 键完全一致：自定义区块统一编号 custom-1、
  *    custom-2…（按顺序），内容逐项同步，杜绝"菜单 id 与数据 key 不匹配"渲染丢失
  *  - 顶层 campus 数组与 customData 校园菜单同步双写（线上版本历史遗留兼容）
  *  - HTML 字段统一 <ul><li><p>…</p></li></ul>，关键词/量化数字 <strong> 加粗
- *  - globalSettings.autoOnePage 恒为 true（一页装下为硬性要求）
+ *  - globalSettings.autoOnePage 为格式兼容开关；页数政策与 PDF 另行验收
  *  - id 全部使用 crypto.randomUUID()；photo base64 原样透传（支持从文件读取）
  *  - fieldOrder 按实测成品（渲染成功的两份线上导出均为 name+title 两项）
  *
@@ -29,6 +29,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { defaultOutputPath, writeJsonOutput } from './lib/output.mjs';
+import { prepareUserFacts } from './lib/facts.mjs';
 
 // ---------------------------------------------------------------- CLI 解析
 function parseArgs(argv) {
@@ -222,6 +223,10 @@ function buildResume(profile, strategy) {
     ? Object.keys(s.keywordPlacement).filter(Boolean) : [];
   const jobTitle = (s.jobTitle || s.targetPosition || b.title || '').trim();
   const name = (b.name || p.name || '').trim();
+  if (!name) fatal('basic.name 不能为空；请先完成事实确认');
+  const policy = s.policy || {};
+  if (policy.maxPages != null && (!Number.isInteger(policy.maxPages) || policy.maxPages < 1 || policy.maxPages > 10)) fatal('policy.maxPages 必须为 1–10 的整数或 null');
+  if (policy.audience && !['unspecified', 'campus', 'professional', 'research'].includes(policy.audience)) fatal('policy.audience 必须为 unspecified/campus/professional/research');
   const keywords = Array.isArray(s.keywords) ? s.keywords : v1Keywords;
 
   // ---- 自定义区块（menuSections 与 customData 的唯一事实源，保证键一致）----
@@ -397,7 +402,7 @@ function buildResume(profile, strategy) {
   const basic = {
     name,
     title: jobTitle || name,
-    employementStatus: b.employementStatus || '在校',
+    employementStatus: b.employementStatus || '',
     email: b.email || '',
     phone: b.phone || '',
     location: b.location || '',
@@ -416,9 +421,8 @@ function buildResume(profile, strategy) {
     layout: b.layout || 'left',
   };
 
-  // ---- globalSettings（金标准默认；autoOnePage 恒 true）----
+  // ---- MagicV 兼容设置；autoOnePage 不证明页数，也不是用户的页数政策。----
   const gs = s.settings || {};
-  if (gs.autoOnePage !== undefined && gs.autoOnePage !== true) warn('settings.autoOnePage 被忽略：按硬性约束强制为 true');
   const globalSettings = {
     baseFontSize: gs.baseFontSize ?? 13,
     pagePadding: gs.pagePadding ?? 34,
@@ -430,7 +434,7 @@ function buildResume(profile, strategy) {
     useIconMode: gs.useIconMode ?? false,
     themeColor: gs.themeColor ?? '#10b981',
     centerSubtitle: gs.centerSubtitle ?? true,
-    autoOnePage: true,
+    autoOnePage: gs.autoOnePage ?? (policy.maxPages == null || policy.maxPages === 1),
     flexibleHeaderLayout: gs.flexibleHeaderLayout ?? true,
     fontFamily: gs.fontFamily ?? '"Alibaba PuHuiTi", sans-serif',
   };
@@ -527,8 +531,13 @@ function fillTopCampus(campusArr, items) {
 // ---------------------------------------------------------------- main
 const opts = parseArgs(process.argv.slice(2));
 const profilePathAbs = resolve(process.cwd(), opts.profile);
-const profile = loadJson(profilePathAbs, 'profile');
-const strategy = loadJson(resolve(process.cwd(), opts.strategy), 'strategy');
+let profile, strategy;
+try {
+  const rawProfile = loadJson(profilePathAbs, 'profile');
+  profile = prepareUserFacts(rawProfile);
+  strategy = prepareUserFacts(loadJson(resolve(process.cwd(), opts.strategy), 'strategy'));
+  if (!rawProfile._meta) warn('兼容旧 plain profile；未提供可执行的逐事实确认/来源状态，生成成功不等于事实已核实');
+} catch (error) { fatal(error.message); }
 
 const { fileNameBase, data } = buildResume(profile, strategy);
 let outPath;

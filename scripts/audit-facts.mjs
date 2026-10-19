@@ -15,8 +15,10 @@
  *      未命中 ≠ 一定是编造：也可能是“语料没纳入”（如项目 README、课程报告）。此时二选一：
  *      ① 把该来源加进 --corpus（推荐，等于补溯源）② 从稿子里删掉这个数字。二者都不做就别交付。
  */
-import { readFileSync, readdirSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { readFileSync, readdirSync, realpathSync } from 'node:fs';
+import { join, extname, dirname, relative, isAbsolute, sep, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { assertUserDocument, factMetadataKeys, hasSource } from './lib/facts.mjs';
 
 const argv = process.argv.slice(2);
 const usage = '用法: node scripts/audit-facts.mjs <resume.json|pitch.md|text.txt> --profile <事实基线.json> [--trace <溯源清单.json>] [--corpus <extra.md>]... [--user <用户目录>] [--format json|text|auto]';
@@ -69,7 +71,17 @@ const corpusNames = [];
 let retractedLines = 0;
 const addCorpus = (path, label) => {
   if (!path) return;
-  corpusParts.push(readDocument(path));
+  try {
+    const actual = realpathSync(path), root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    for (const resource of ['data', 'profile', 'preset']) {
+      const child = relative(join(root, resource), actual);
+      if (!child || (!child.startsWith(`..${sep}`) && child !== '..' && !isAbsolute(child))) fail('公共写作参考与模板不能作为本人事实来源');
+    }
+    const document = readDocument(path);
+    assertUserDocument(document);
+    if (typeof document === 'string' && /^(?:---[\s\S]*?\bkind:\s*(?:template|example)\b[\s\S]*?---|<!--\s*dsh-cv:reference\s*-->)/i.test(document)) fail('模板/示例不能作为事实语料');
+    corpusParts.push(document);
+  } catch (error) { fail(`无法采用语料 ${path}: ${error.message}`); }
   corpusNames.push(`${label}: ${path}`);
 };
 
@@ -157,8 +169,14 @@ const walk = (node, path) => {
     return;
   }
   if (typeof node === 'object') {
+    if (readingSource) { try { assertUserDocument(node); } catch { return; } }
+    if (readingSource && Object.hasOwn(node, 'status')) {
+      if (node.status !== 'confirmed') return;
+      if (!hasSource(node.source)) fail(`已确认来源项 ${path} 缺少 source`);
+      if (Object.hasOwn(node, 'value')) { walk(node.value, path); return; }
+    }
     for (const [k, v] of Object.entries(node)) {
-      if (SKIP_KEYS.has(k)) continue;
+      if (SKIP_KEYS.has(k) || factMetadataKeys.has(k)) continue;
       walk(v, path ? `${path}.${k}` : k);
     }
   }

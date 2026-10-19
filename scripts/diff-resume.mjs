@@ -10,12 +10,13 @@
  *   node "scripts\diff-resume.mjs" --base "<蓝本.json>" --new "<新稿.json>" [--expect "<users\<用户名>\output\changerequest-<公司>-<岗位>.json>"]
  *
  * 申请单（changerequest-*.json）最小结构：
- *   { "approved": true, "approvedAt": "2026-09-17 13:20", "touchedFields": ["basic.title", "projects[0].description", "education[0].description"] }
+ *   schemaVersion=2：通过 approval.mjs prepare 绑定原稿和方案；本次明确确认后记录 approved/approvedAt。
  *   - touchedFields 支持数组下标与点号路径；父路径（如 projects[0]）视为覆盖其全部子字段。
- *   - approved 不为 true 时，本脚本直接拒绝核对（视为未批准）。
+ *   - 需传齐申请单绑定的 --strategy/--profile；输入或方案变化必须重新确认。
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { validateApproval } from './lib/approval.mjs';
 
 const argv = process.argv.slice(2);
 const flag = (n) => {
@@ -104,6 +105,8 @@ if (!existsSync(expectPath)) {
   process.exit(2);
 }
 const req = J(expectPath);
+try { validateApproval(req, { base: basePath, strategy: flag('--strategy'), profile: flag('--profile') }); }
+catch (error) { console.error(`批准记录无效：${error.message}`); process.exit(1); }
 if (req.approved !== true) {
   console.log('\n结论：❌ 申请单 approved != true —— 用户尚未批准，不得核对通过。');
   process.exit(1);

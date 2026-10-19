@@ -7,7 +7,7 @@
 ## 1. `grilling`（技能机制改造来源）— MIT
 
 - 来源：<https://github.com/mattpocock/skills>（`skills/productivity/grilling`，commit `6eeb81b`）
-- 用途：`preset/skills/cv-intake/` 的 **frontier 轮次提问法**（整轮列完 frontier、每题给推荐答案、事实自查、决策问用户）改造自该技能。
+- 用途：`preset/skills/cv-intake/` 的 **frontier 轮次提问法**改造自该技能；当前按已有材料和必要缺口推进，策略可给推荐，个人史实不预填推荐答案。
 - 说明：**不是逐字复制**。本仓库的 `cv-intake` 是针对"个人履历建档"场景的重写，关键差异：上游公理"事实归你查、决策归用户"在建档场景只对部分成立（个人史实只有本人知道），故本文档把问题分流为「只有用户知道的事实 / 机器可自查的事实 / 决策」三类，并加入温和档节奏、`status: pending` 纪律与确认门对接。
 - 许可全文（随上游保留，MIT 要求保留版权声明）：
 

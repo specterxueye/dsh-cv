@@ -332,7 +332,7 @@ if (Array.isArray(json.campus) && json.campus.length > 0) {
 
 // ---------------------------------------------------------- 6. globalSettings / templateId / dragging
 if (json.globalSettings) {
-  if (json.globalSettings.autoOnePage !== true) error('globalSettings.autoOnePage 必须为 true（一页装下硬性要求）');
+  if (typeof json.globalSettings.autoOnePage !== 'boolean') error('globalSettings.autoOnePage 必须为布尔值（不能据此证明页数）');
   if (!json.globalSettings.themeColor) warn('globalSettings.themeColor 为空');
   if (typeof json.globalSettings.baseFontSize !== 'number') warn('globalSettings.baseFontSize 应为数字');
 }

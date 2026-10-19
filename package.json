@@ -39,6 +39,7 @@
     "scripts/diff-resume.mjs",
     "scripts/merge-blueprint.mjs",
     "scripts/paths.mjs",
+    "scripts/approval.mjs",
     "scripts/install.ps1",
     "scripts/sync-preset.ps1",
     "scripts/render-height.mjs",
@@ -48,7 +49,7 @@
   ],
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/correctness.test.mjs tests/audit.test.mjs tests/installation.test.mjs",
+    "test": "node --test tests/correctness.test.mjs tests/audit.test.mjs tests/installation.test.mjs tests/facts.test.mjs tests/approval.test.mjs",
     "test:browser": "node --test tests/render-safety.test.mjs tests/pagination.test.mjs",
     "check": "node scripts/check.mjs",
     "validate": "node scripts/validate-resume.mjs",

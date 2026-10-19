@@ -30,8 +30,13 @@ function renderArgs(argv, defaultShot) {
     if (data.menuSections?.find(s => s.id === section)?.enabled === false) continue;
     if (data[key]?.trim()) anchors.push(normalize(plain(data[key])));
   }
-  for (const key of data.basic?.fieldOrder || []) {
+  for (const field of data.basic?.fieldOrder || []) {
+    if (field.visible === false) continue;
+    const key = typeof field === 'string' ? field : field.key;
     if (typeof data.basic[key] === 'string' && data.basic[key].trim()) anchors.push(normalize(plain(data.basic[key])));
+  }
+  for (const field of data.basic?.customFields || []) {
+    if (field.visible !== false && typeof field.value === 'string' && field.value.trim()) anchors.push(normalize(plain(field.value)));
   }
   if (!anchors[0] || anchors.length < 2) throw new Error('导入身份核对至少需要姓名与一处可见正文，请先完成结构校验');
   return { file: positional[0], shot: positional[1] || defaultShot, anchors: [...new Set(anchors)] };

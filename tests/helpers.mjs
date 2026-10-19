@@ -3,6 +3,12 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import assert from 'node:assert/strict';
+import { fileDigest, planDigest } from '../scripts/lib/approval.mjs';
+
+export function approvedRequest(base, touchedFields = [], extra = {}) {
+  const request = { schemaVersion: 2, mode: 'edit', approved: true, approvedAt: '2026-10-18T00:00:00Z', baseSha256: fileDigest(base), touchedFields, ...extra };
+  return { ...request, planSha256: planDigest(request) };
+}
 
 export const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const syntheticProfile = JSON.parse(readFileSync(join(repoRoot, 'tests/fixtures/synthetic-profile.json'), 'utf8'));
@@ -13,7 +19,7 @@ export function sandbox(t) {
   const dir = mkdtempSync(join(scratchRoot, 'case-'));
   const root = join(dir, 'package');
   mkdirSync(join(root, 'scripts'), { recursive: true });
-  for (const file of ['build-resume.mjs', 'validate-resume.mjs', 'diff-resume.mjs', 'merge-blueprint.mjs', 'audit-facts.mjs', 'render-height.mjs']) {
+  for (const file of ['build-resume.mjs', 'validate-resume.mjs', 'diff-resume.mjs', 'merge-blueprint.mjs', 'audit-facts.mjs', 'render-height.mjs', 'approval.mjs']) {
     copyFileSync(join(repoRoot, 'scripts', file), join(root, 'scripts', file));
   }
   cpSync(join(repoRoot, 'scripts/lib'), join(root, 'scripts/lib'), { recursive: true });
